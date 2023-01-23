@@ -116,8 +116,9 @@ func (record *LogRecord) recordSize() uint64 {
 }
 
 func main() {
-	// Open the WAL file (for seeing why permission is set to 0644 visit https://phoenixnap.com/kb/linux-file-permissions)
-	file, err := os.OpenFile("wal.log", os.O_CREATE|os.O_RDWR, 0644)
+	// Open the WAL file (for seeing why permission is set to 0600 visit https://phoenixnap.com/kb/linux-file-permissions)
+	file, err := os.OpenFile("wal.log", os.O_CREATE|os.O_RDWR, 0600)
+
 	if err != nil {
 		fmt.Println(err)
 		return
