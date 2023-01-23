@@ -1,4 +1,4 @@
-package main
+package bloomfilter
 
 type BloomFilter struct {
 	max_size int
@@ -9,7 +9,7 @@ type BloomFilter struct {
 	hashfns  []HashWithSeed
 }
 
-func newBloomFilter(size int, fpr float64) *BloomFilter {
+func NewBloomFilter(size int, fpr float64) *BloomFilter {
 	calculatedM := CalculateM(size, fpr)
 	calculatedK := CalculateK(size, calculatedM)
 	return &BloomFilter{
@@ -22,7 +22,7 @@ func newBloomFilter(size int, fpr float64) *BloomFilter {
 	}
 }
 
-func (bf *BloomFilter) add(value []byte) {
+func (bf *BloomFilter) Add(value []byte) {
 	for _, i := range bf.hashfns {
 		hashedValue := i.Hash(value)
 		position := uint(hashedValue) % bf.m
@@ -32,7 +32,7 @@ func (bf *BloomFilter) add(value []byte) {
 	bf.n += 1
 }
 
-func (bf *BloomFilter) find(value []byte) bool {
+func (bf *BloomFilter) Find(value []byte) bool {
 	for _, i := range bf.hashfns {
 		hashedValue := i.Hash(value)
 		position := uint(hashedValue) % bf.m
@@ -44,13 +44,14 @@ func (bf *BloomFilter) find(value []byte) bool {
 	return true
 
 }
-func main() {
-	bloom := newBloomFilter(10, 0.1)
-	bloom.add([]byte("danilo"))
-	bloom.add([]byte("golang"))
-	bloom.add([]byte("dddd"))
 
-	println(bloom.find([]byte("danilo")))
-	println(bloom.find([]byte("daniloc")))
-
-}
+//func main() {
+//	bloom := NewBloomFilter(10, 0.1)
+//	bloom.add([]byte("danilo"))
+//	bloom.add([]byte("golang"))
+//	bloom.add([]byte("dddd"))
+//
+//	println(bloom.find([]byte("danilo")))
+//	println(bloom.find([]byte("daniloc")))
+//
+//}

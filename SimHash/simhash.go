@@ -1,10 +1,9 @@
-package main
+package simhash
 
 import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -66,25 +65,25 @@ func ToBinary(s string) string {
 	return res
 }
 
-func main() {
-
-	var simhash1 []byte
-	var simhash2 []byte
-
-	if input, err := os.ReadFile("tekst1.txt"); err == nil {
-		str := string(input)
-		parsedtxt := parseText(str)
-		simhash1 = CalculateHash(parsedtxt)
-	}
-	if input, err := os.ReadFile("tekst2.txt"); err == nil {
-		str := string(input)
-		parsedtxt := parseText(str)
-		simhash2 = CalculateHash(parsedtxt)
-	}
-
-	c := make([]byte, 256)
-	for i := range simhash1 {
-		c[i] = simhash1[i] ^ simhash2[i]
-	}
-	fmt.Printf("%d", c)
-}
+//func main() {
+//
+//	var simhash1 []byte
+//	var simhash2 []byte
+//
+//	if input, err := os.ReadFile("tekst1.txt"); err == nil {
+//		str := string(input)
+//		parsedtxt := parseText(str)
+//		simhash1 = CalculateHash(parsedtxt)
+//	}
+//	if input, err := os.ReadFile("tekst2.txt"); err == nil {
+//		str := string(input)
+//		parsedtxt := parseText(str)
+//		simhash2 = CalculateHash(parsedtxt)
+//	}
+//
+//	c := make([]byte, 256)
+//	for i := range simhash1 {
+//		c[i] = simhash1[i] ^ simhash2[i]
+//	}
+//	fmt.Printf("%d", c)
+//}

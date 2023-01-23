@@ -1,8 +1,7 @@
-package main
+package hyperloglog
 
 import (
 	"encoding/binary"
-	"fmt"
 	"hash/fnv"
 	"math"
 	"math/bits"
@@ -28,7 +27,7 @@ func findTrailingZeros(n uint32) int {
 	return 1 + bits.TrailingZeros32(n)
 }
 
-func newHyperLogLog(b uint) *hyperLogLog {
+func NewHyperLogLog(b uint) *hyperLogLog {
 	m := uint(math.Pow(2.0, float64(b)))
 	return &hyperLogLog{
 		b:         b,
@@ -37,7 +36,7 @@ func newHyperLogLog(b uint) *hyperLogLog {
 	}
 }
 
-func (hll *hyperLogLog) add(value []byte) {
+func (hll *hyperLogLog) Add(value []byte) {
 	hashedValue := generateHash(value)
 	zeros := uint(findTrailingZeros(hashedValue))
 	bucket := uint(hashedValue) >> uint(32-hll.b)
@@ -75,7 +74,7 @@ func (hll *hyperLogLog) emptyCount() int {
 	return sum
 }
 
-func getRandomData() (out [][]byte, intout []uint32) {
+func GetRandomData() (out [][]byte, intout []uint32) {
 	for i := 0; i < math.MaxInt16; i++ {
 		rand.Seed(time.Now().UnixNano())
 		i := rand.Uint32()
@@ -86,13 +85,14 @@ func getRandomData() (out [][]byte, intout []uint32) {
 	}
 	return
 }
-func main() {
-	bs, _ := getRandomData()
-	h := newHyperLogLog(16)
-	for _, b := range bs {
-		h.add(b)
-	}
-	hd := h.Estimate()
-	fmt.Println(hd)
 
-}
+//func main() {
+//	bs, _ := getRandomData()
+//	h := newHyperLogLog(16)
+//	for _, b := range bs {
+//		h.add(b)
+//	}
+//	hd := h.Estimate()
+//	fmt.Println(hd)
+//
+//}
