@@ -12,6 +12,13 @@ func main() {
 	brSeg := result["num_of_segments"]
 	treshold := result["trashold"]
 
-	memTable := mt.CreateMemtable(kapacitet, brSeg, treshold)
-	memTable.Add(mt.Element{key: 12, value: []byte("danilo")})
+	mt.Init(kapacitet, brSeg, treshold)
+	mt.Active.Add(mt.Element{Key: []byte("penis"), Value: []byte("danilo")})
+	mt.Active.Add(mt.Element{Key: []byte("penis1"), Value: []byte("danilo")})
+	mt.Active.Add(mt.Element{Key: []byte("penia"), Value: []byte("danilo")})
+	mt.Active.Add(mt.Element{Key: []byte("penib"), Value: []byte("danilo")})
+	mt.Active.Add(mt.Element{Key: []byte("penic"), Value: []byte("danilo")})
+	mt.Active.Add(mt.Element{Key: []byte("penid"), Value: []byte("danilo")})
+	mt.Active.Print()
+	mt.CheckThreshold()
 }

@@ -1,5 +1,5 @@
 {
-	"capacity": 101,
-	"num_of_segments": 2,
-    "trashold": 100
+	"memtable_capacity": 9000,
+	"memtable_num_of_segments": 2,
+    "memtable_trashold": 5
 }

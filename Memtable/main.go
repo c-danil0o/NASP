@@ -5,47 +5,29 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	s "github.com/c-danil0o/NASP/SkipList"
 )
 
-type Element struct {
-	key   int
-	value []byte
-}
+var Active Memtable
+var Second Memtable
 
-type Memtable struct {
-	capacity        int
-	num_of_segments int
-	trashold        int
-	elements        s.SkipList
+func Init(capacity int, numOfSegments int, threshold int) {
+	Active = *CreateMemtable(capacity, numOfSegments, threshold)
+	Second = *CreateMemtable(capacity, numOfSegments, threshold)
 }
-
-func CreateMemtable(kapacitet int, brSegmenata int, trasholdd int) *Memtable {
-	return &Memtable{
-		capacity:        kapacitet,
-		num_of_segments: brSegmenata,
-		trashold:        trasholdd,
-		elements:        *s.NewSkipList(),
+func CheckThreshold() {
+	if Active.data.Size() >= Active.threshold {
+		Second = Active
+		Active.Clear()
+		Flush(&Second)
 	}
 }
+func Flush(mt *Memtable) {
+	list := mt.data.GetSortedData()
+	fmt.Println(list)
 
-func (memtable *Memtable) Add(el Element) {
-	memtable.elements.Insert(int(el.key), el.value)
 }
-
-func (memtable *Memtable) Print() {
-	memtable.elements.Print()
-}
-
-func (memtable *Memtable) Push() {
-	println("push-kurac")
-	println(memtable.capacity)
-	println(memtable.trashold)
-}
-
-func ReadFile(imefajla string) map[string]int {
-	jsonFile, err := os.Open(imefajla)
+func ReadFile(filename string) map[string]int {
+	jsonFile, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
 	}
