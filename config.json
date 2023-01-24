@@ -1,0 +1,5 @@
+{
+	"capacity": 101,
+	"num_of_segments": 2,
+    "trashold": 100
+}

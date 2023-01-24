@@ -14,7 +14,7 @@ const (
 )
 
 type SkipNode struct {
-	key     int
+	key     string
 	value   []byte
 	forward []*SkipNode
 }
@@ -27,7 +27,7 @@ type SkipList struct {
 	size     uint
 }
 
-func newNode(key int, value []byte, level int) *SkipNode {
+func newNode(key string, value []byte, level int) *SkipNode {
 	node := new(SkipNode)
 	node.key = key
 	node.value = value
