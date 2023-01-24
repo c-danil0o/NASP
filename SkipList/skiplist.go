@@ -1,6 +1,7 @@
 package skiplist
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
@@ -8,15 +9,20 @@ import (
 )
 
 const (
-	MAX_LEVEL = 10
-	MIN_KEY   = math.MinInt32
-	MAX_KEY   = math.MaxInt32
+	MAX_LEVEL      = 10
+	MAX_KEY_LENGTH = 10
+	MIN_KEY        = "0"
+	MAX_KEY        = "~~~~~~~~~~"
+	//MIN_KEY        = math.MinInt32
+	//MAX_KEY        = math.MaxInt32
 )
 
 type SkipNode struct {
-	key     string
-	value   []byte
-	forward []*SkipNode
+	Key       []byte
+	Value     []byte
+	Timestamp int64
+	Tombstone byte
+	forward   []*SkipNode
 }
 
 type SkipList struct {
@@ -24,13 +30,15 @@ type SkipList struct {
 	last     *SkipNode
 	maxLevel uint
 	height   int
-	size     uint
+	size     int
 }
 
-func newNode(key string, value []byte, level int) *SkipNode {
+func newNode(key []byte, value []byte, timestamp int64, tombstone byte, level int) *SkipNode {
 	node := new(SkipNode)
-	node.key = key
-	node.value = value
+	node.Key = key
+	node.Value = value
+	node.Tombstone = 0
+	node.Timestamp = timestamp
 	node.forward = make([]*SkipNode, level)
 	for i := 0; i < level; i++ {
 		node.forward[i] = nil
@@ -39,8 +47,8 @@ func newNode(key string, value []byte, level int) *SkipNode {
 }
 
 func NewSkipList() *SkipList {
-	head := newNode(MIN_KEY, []byte(""), MAX_LEVEL)
-	last := newNode(MAX_KEY, []byte(""), MAX_LEVEL)
+	head := newNode([]byte(MIN_KEY), []byte(""), 0, 0, MAX_LEVEL)
+	last := newNode([]byte(MAX_KEY), []byte(""), 0, 0, MAX_LEVEL)
 	for i := 0; i < len(head.forward); i++ {
 		head.forward[i] = last
 	}
@@ -64,25 +72,25 @@ func (s *SkipList) roll() uint {
 	return level
 }
 
-func (s *SkipList) Find(key int) *SkipNode {
+func (s *SkipList) Find(key []byte) *SkipNode {
 	x := s.head
 	for i := s.height; i >= 0; i-- {
-		for x.forward[i] != nil && x.forward[i].key < key {
+		for x.forward[i] != nil && bytes.Compare(x.forward[i].Key, key) == -1 {
 			x = x.forward[i]
 		}
 	}
 	x = x.forward[0]
-	if x.key == key {
+	if bytes.Compare(x.Key, key) == 0 {
 		return x
 	} else {
 		return nil
 	}
 }
 
-func (s *SkipList) Insert(key int, value []byte) {
+func (s *SkipList) Insert(key []byte, value []byte, timestamp int64, tombstone byte) {
 	temp := s.Find(key)
 	if temp != nil {
-		temp.value = value
+		temp.Value = value
 		return
 	}
 	update := make([]*SkipNode, len(s.head.forward))
@@ -90,14 +98,14 @@ func (s *SkipList) Insert(key int, value []byte) {
 	x := s.head
 
 	for i := s.height; i >= 0; i-- {
-		for x.forward[i] != nil && x.forward[i].key < key {
+		for x.forward[i] != nil && bytes.Compare(x.forward[i].Key, key) == -1 {
 			x = x.forward[i]
 		}
 		update[i] = x
 	}
 	x = x.forward[0]
-	var newLevel int = MAX_KEY
-	if x.key != key {
+	var newLevel int = math.MaxInt32
+	if bytes.Compare(x.Key, key) != 0 {
 		for newLevel > MAX_LEVEL {
 			newLevel = int(s.roll())
 		}
@@ -107,26 +115,52 @@ func (s *SkipList) Insert(key int, value []byte) {
 			}
 			s.height = newLevel - 1
 		}
-		x = newNode(key, value, newLevel)
+		x = newNode(key, value, timestamp, tombstone, newLevel)
 	}
 	for i := 0; i < newLevel; i++ {
 		x.forward[i] = update[i].forward[i]
 		update[i].forward[i] = x
 	}
+	s.size++
 }
-func (s *SkipList) Delete(key int) {
+
+func (s *SkipList) Delete(key []byte) {
 	update := make([]*SkipNode, len(s.head.forward))
 	copy(update, s.head.forward)
 	x := s.head
 
 	for i := s.height; i >= 0; i-- {
-		for x.forward[i] != nil && x.forward[i].key < key {
+		for x.forward[i] != nil && bytes.Compare(x.forward[i].Key, key) == -1 {
 			x = x.forward[i]
 		}
 		update[i] = x
 	}
 	x = x.forward[0]
-	if key == x.key {
+	if bytes.Compare(x.Key, key) == 0 {
+		for i := 0; i < int(s.maxLevel); i++ {
+			if update[i].forward[i] != x {
+				break
+			}
+			//update[i].forward[i] = x.forward[i]
+			update[i].forward[i].Tombstone = 1
+		}
+		//s.size--
+	}
+}
+
+func (s *SkipList) DeleteF(key []byte) {
+	update := make([]*SkipNode, len(s.head.forward))
+	copy(update, s.head.forward)
+	x := s.head
+
+	for i := s.height; i >= 0; i-- {
+		for x.forward[i] != nil && bytes.Compare(x.forward[i].Key, key) == -1 {
+			x = x.forward[i]
+		}
+		update[i] = x
+	}
+	x = x.forward[0]
+	if bytes.Compare(x.Key, key) == 0 {
 		for i := 0; i < int(s.maxLevel); i++ {
 			if update[i].forward[i] != x {
 				break
@@ -134,19 +168,32 @@ func (s *SkipList) Delete(key int) {
 			update[i].forward[i] = x.forward[i]
 		}
 		x = nil
+		s.size--
 	}
-
+}
+func (s *SkipList) Size() int {
+	return s.size
 }
 func (s *SkipList) Print() {
 	var node *SkipNode
 	for i := int(s.maxLevel - 1); i >= 0; i-- {
 		node = s.head.forward[i]
 		fmt.Printf("Level: %v ---> ", i)
-		for node != nil && node.key != MAX_KEY {
-			fmt.Printf(" %v", node.key)
+		for node != nil && bytes.Compare(node.Key, []byte(MAX_KEY)) != 0 {
+			fmt.Printf(" %v %v,", string(node.Key), node.Tombstone)
 			node = node.forward[i]
 		}
 		fmt.Println()
 	}
 	fmt.Println()
+}
+
+func (s *SkipList) GetSortedData() []*SkipNode {
+	var node *SkipNode = s.head.forward[0]
+	var result []*SkipNode
+	for node != nil && bytes.Compare(node.Key, []byte(MAX_KEY)) != 0 {
+		result = append(result, node)
+		node = node.forward[0]
+	}
+	return result
 }
