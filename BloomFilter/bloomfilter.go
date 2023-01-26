@@ -1,5 +1,11 @@
 package bloomfilter
 
+import (
+	"bytes"
+	"encoding/binary"
+	"io"
+)
+
 type BloomFilter struct {
 	max_size int
 	bits     []bool
@@ -42,6 +48,23 @@ func (bf *BloomFilter) Find(value []byte) bool {
 
 	}
 	return true
+
+}
+
+func (bf *BloomFilter) Serialize(writer io.Writer) error {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.BigEndian, bf.bits)
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bf *BloomFilter) Deserialize() {
 
 }
 
