@@ -12,7 +12,7 @@ type Element struct {
 type Memtable struct {
 	capacity      int
 	numOfSegments int
-	threshold     int
+	Threshold     int
 	data          s.SkipList
 }
 
@@ -20,7 +20,7 @@ func CreateMemtable(capacity int, numOfSegments int, threshold int) *Memtable {
 	return &Memtable{
 		capacity:      capacity,
 		numOfSegments: numOfSegments,
-		threshold:     threshold,
+		Threshold:     threshold,
 		data:          *s.NewSkipList(),
 	}
 }

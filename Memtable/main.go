@@ -3,6 +3,7 @@ package memtable
 import (
 	"encoding/json"
 	"fmt"
+	sst "github.com/c-danil0o/NASP/SSTable"
 	"io/ioutil"
 	"os"
 )
@@ -15,7 +16,7 @@ func Init(capacity int, numOfSegments int, threshold int) {
 	Second = *CreateMemtable(capacity, numOfSegments, threshold)
 }
 func CheckThreshold() {
-	if Active.data.Size() >= Active.threshold {
+	if Active.data.Size() >= Active.Threshold {
 		Second = Active
 		Active.Clear()
 		Flush(&Second)
@@ -23,6 +24,10 @@ func CheckThreshold() {
 }
 func Flush(mt *Memtable) {
 	list := mt.data.GetSortedData()
+	err := sst.Init(list)
+	if err != nil {
+		return
+	}
 	fmt.Println(list)
 
 }
