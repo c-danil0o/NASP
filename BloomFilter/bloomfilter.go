@@ -4,34 +4,38 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"os"
 )
 
 type BloomFilter struct {
 	max_size int
 	bits     []bool
-	m        uint
-	k        uint
+	m        uint32
+	k        uint32
 	n        uint
 	hashfns  []HashWithSeed
+	seeds    [][]byte
 }
 
 func NewBloomFilter(size int, fpr float64) *BloomFilter {
 	calculatedM := CalculateM(size, fpr)
 	calculatedK := CalculateK(size, calculatedM)
+	hshfns, seeds := CreateHashFunctions(calculatedK)
 	return &BloomFilter{
 		max_size: size,
 		bits:     make([]bool, calculatedM),
 		n:        uint(0),
 		k:        calculatedK,
 		m:        calculatedM,
-		hashfns:  CreateHashFunctions(calculatedK),
+		hashfns:  hshfns,
+		seeds:    seeds,
 	}
 }
 
 func (bf *BloomFilter) Add(value []byte) {
 	for _, i := range bf.hashfns {
 		hashedValue := i.Hash(value)
-		position := uint(hashedValue) % bf.m
+		position := uint32(hashedValue) % bf.m
 		bf.bits[position] = true
 
 	}
@@ -41,7 +45,7 @@ func (bf *BloomFilter) Add(value []byte) {
 func (bf *BloomFilter) Find(value []byte) bool {
 	for _, i := range bf.hashfns {
 		hashedValue := i.Hash(value)
-		position := uint(hashedValue) % bf.m
+		position := uint32(hashedValue) % bf.m
 		if !bf.bits[position] {
 			return false
 		}
@@ -51,9 +55,15 @@ func (bf *BloomFilter) Find(value []byte) bool {
 
 }
 
+// serializing bits, m, k, seeds
 func (bf *BloomFilter) Serialize(writer io.Writer) error {
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.BigEndian, bf.bits)
+	err := binary.Write(&buf, binary.BigEndian, bf.m)
+	err = binary.Write(&buf, binary.BigEndian, bf.k)
+	err = binary.Write(&buf, binary.BigEndian, bf.bits)
+	for i := 0; i < int(bf.k); i++ {
+		err = binary.Write(&buf, binary.BigEndian, bf.seeds[i])
+	}
 	if err != nil {
 		return err
 	}
@@ -64,8 +74,35 @@ func (bf *BloomFilter) Serialize(writer io.Writer) error {
 	return nil
 }
 
-func (bf *BloomFilter) Deserialize() {
+func Read(file *os.File, offset int64) (error, *BloomFilter) {
+	bf := BloomFilter{}
+	_, err := file.Seek(offset, 0)
+	if err != nil {
+		return err, nil
+	}
+	if err := binary.Read(file, binary.BigEndian, &bf.m); err != nil {
+		return err, nil
+	}
+	if err := binary.Read(file, binary.BigEndian, &bf.k); err != nil {
+		return err, nil
+	}
+	bf.bits = make([]bool, bf.m)
+	bf.seeds = make([][]byte, bf.k)
+	for i := 0; i < int(bf.k); i++ {
+		bf.seeds[i] = make([]byte, 32)
+	}
+	if err := binary.Read(file, binary.BigEndian, &bf.bits); err != nil {
+		return err, nil
+	}
 
+	for i := 0; i < int(bf.k); i++ {
+		if err := binary.Read(file, binary.BigEndian, &bf.seeds[i]); err != nil {
+			return err, nil
+		}
+	}
+
+	bf.hashfns = CreateHashFunctionsFromSeeds(bf.k, bf.seeds)
+	return nil, &bf
 }
 
 //func main() {
