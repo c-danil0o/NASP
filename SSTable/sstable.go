@@ -2,6 +2,7 @@ package SSTable
 
 import (
 	"encoding/binary"
+	"fmt"
 	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
 	skiplist "github.com/c-danil0o/NASP/SkipList"
 	"math"
@@ -46,6 +47,8 @@ func Init(nodes []*skiplist.SkipNode) error {
 	indexFile, _ := os.OpenFile(sstable.indexFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	summaryFile, _ := os.OpenFile(sstable.summaryFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	bloomFile, _ := os.OpenFile(sstable.filterFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	//metadataFile, _ := os.OpenFile(sstable.metadataFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+
 	defer dataFile.Close()
 	defer indexFile.Close()
 	defer summaryFile.Close()
@@ -53,7 +56,7 @@ func Init(nodes []*skiplist.SkipNode) error {
 	var indexOffset uint64 = 0
 	var summarySize = int(math.Ceil(float64(len(nodes)) / float64(sstable.SegmentSize)))
 	sstable.NumOfSegments = summarySize
-	summary := NewSummary(summarySize)
+	summary := NewSummary(int32(summarySize))
 	sstable.Bloom = *bloomfilter.NewBloomFilter(len(nodes)+50, 0.1)
 	for count < len(nodes) {
 		for i := 0; i < int(sstable.SegmentSize) && count < len(nodes); i++ {
@@ -61,11 +64,12 @@ func Init(nodes []*skiplist.SkipNode) error {
 			if i == 0 {
 				summary.keys[count2] = nodes[count].Key
 				summary.positions[count2] = indexOffset
-				indexOffset += uint64(len(nodes[i].Key)) + 8 // keylength + uint64 - position
+
 				count2++
 			}
 			index.keys[count] = nodes[count].Key
 			index.positions[count] = offset
+			indexOffset += uint64(len(nodes[count].Key)) + 8 // keylength + uint64 - position
 			var timestampConvert [16]byte
 			binary.PutVarint(timestampConvert[:], nodes[count].Timestamp)
 			tempRecord := Record{
@@ -93,7 +97,7 @@ func Init(nodes []*skiplist.SkipNode) error {
 	if err != nil {
 		return err
 	}
-	err = summary.WriteSummary(summaryFile)
+	err = summary.WriteSummary(summaryFile, index.keys[len(index.keys)-1])
 	if err != nil {
 		return err
 	}
@@ -104,7 +108,12 @@ func Init(nodes []*skiplist.SkipNode) error {
 	indexFile.Sync()
 	summaryFile.Sync()
 	bloomFile.Sync()
-
+	_, first, last := ReadFirstLast(summaryFile, 0)
+	fmt.Println(first, last)
+	_, newSumm := ReadSummary(summaryFile, 0)
+	fmt.Println(newSumm)
+	_, newbf := bloomfilter.Read(bloomFile, 0)
+	fmt.Println(newbf.Find([]byte("abcdef")))
 	return nil
 }
 
