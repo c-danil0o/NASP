@@ -6,6 +6,7 @@ import (
 	skiplist "github.com/c-danil0o/NASP/SkipList"
 	"math"
 	"os"
+	"strconv"
 )
 
 const SegmentSize = 3
@@ -17,7 +18,7 @@ type SSTable struct {
 	filterFilename   string
 	TOCFilename      string
 	metadataFilename string
-	generation       uint
+	generation       uint32
 	SegmentSize      uint
 	NumOfSegments    int
 	RecordSize       uint
@@ -25,24 +26,24 @@ type SSTable struct {
 	Bloom            bloomfilter.BloomFilter
 }
 
-func NewSSTable(dataSize uint64) *SSTable {
+func NewSSTable(dataSize uint64, generation uint32) *SSTable {
 	return &SSTable{
-		dataFilename:     "usertable-" + "0" + "-Data.db",
-		indexFilename:    "usertable-" + "0" + "-Index.db",
-		summaryFilename:  "usertable-" + "0" + "-Summary.db",
-		filterFilename:   "usertable-" + "0" + "-Filter.db",
-		TOCFilename:      "usertable-" + "0" + "-TOC.db",
-		metadataFilename: "usertable-" + "0" + "-Metadata.db",
-		generation:       0,
+		dataFilename:     "usertable-" + strconv.Itoa(int(generation)) + "-Data.db",
+		indexFilename:    "usertable-" + strconv.Itoa(int(generation)) + "-Index.db",
+		summaryFilename:  "usertable-" + strconv.Itoa(int(generation)) + "-Summary.db",
+		filterFilename:   "usertable-" + strconv.Itoa(int(generation)) + "-Filter.db",
+		TOCFilename:      "usertable-" + strconv.Itoa(int(generation)) + "-TOC.db",
+		metadataFilename: "usertable-" + strconv.Itoa(int(generation)) + "-Metadata.db",
+		generation:       generation,
 		DataSize:         dataSize,
 		SegmentSize:      SegmentSize,
 	}
 }
 
-func Init(nodes []*skiplist.SkipNode) error {
+func Init(nodes []*skiplist.SkipNode, generation uint32) error {
 	count := 0
 	count2 := 0
-	sstable := NewSSTable(uint64(len(nodes)))
+	sstable := NewSSTable(uint64(len(nodes)), generation)
 	index := NewIndex(sstable)
 	dataFile, _ := os.OpenFile(sstable.dataFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	indexFile, _ := os.OpenFile(sstable.indexFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)

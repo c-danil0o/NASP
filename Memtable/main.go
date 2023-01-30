@@ -10,25 +10,32 @@ import (
 
 var Active Memtable
 var Second Memtable
+var Generation uint32
 
 func Init(capacity int, numOfSegments int, threshold int) {
+	Generation = 0
 	Active = *CreateMemtable(capacity, numOfSegments, threshold)
 	Second = *CreateMemtable(capacity, numOfSegments, threshold)
 }
-func CheckThreshold() {
+func CheckThreshold() error {
 	if Active.data.Size() >= Active.Threshold {
 		Second = Active
 		Active.Clear()
-		Flush(&Second)
+		err := Flush(&Second)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
-func Flush(mt *Memtable) {
+func Flush(mt *Memtable) error {
 	list := mt.data.GetSortedData()
-	err := sst.Init(list)
+	err := sst.Init(list, Generation)
+	Generation++
 	if err != nil {
-		return
+		return err
 	}
-
+	return nil
 }
 func ReadFile(filename string) map[string]int {
 	jsonFile, err := os.Open(filename)
