@@ -1,4 +1,3 @@
-5 budala rade projekat
 
 u ovaj branch pushujete
 
