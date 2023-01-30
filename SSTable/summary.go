@@ -3,6 +3,7 @@ package SSTable
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
 )
@@ -80,71 +81,80 @@ func (summary *Summary) WriteSummary(writer io.Writer, last []byte) error {
 	return nil
 }
 
-func ReadFirstLast(file *os.File, offset int64) (error, []byte, []byte) {
+func ReadFirstLast(file *os.File, offset int64) ([]byte, []byte, error) {
 	_, err := file.Seek(offset, 0)
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	var firstSize, lastSize uint64
 	if err := binary.Read(file, binary.BigEndian, &firstSize); err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &lastSize); err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	first := make([]byte, firstSize)
 	last := make([]byte, lastSize)
 	if err := binary.Read(file, binary.BigEndian, &first); err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &last); err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
-	return nil, first, last
+	return first, last, err
 }
 
-func ReadSummary(file *os.File, offset int64) (error, *Summary) {
+func ReadSummary(file *os.File, offset int64) (*Summary, error) {
 	summ := Summary{}
 	_, err := file.Seek(offset, 0)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	var firstSize, lastSize uint64
 	if err := binary.Read(file, binary.BigEndian, &firstSize); err != nil {
-		return err, nil
+		return nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &lastSize); err != nil {
-		return err, nil
+		return nil, err
 	}
 	summ.first = make([]byte, firstSize)
 	summ.last = make([]byte, lastSize)
 	if err := binary.Read(file, binary.BigEndian, &summ.first); err != nil {
-		return err, nil
+		return nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &summ.last); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := binary.Read(file, binary.BigEndian, &summ.summarySize); err != nil {
-		return err, nil
+		return nil, err
 	}
 	summ.keys = make([][]byte, summ.summarySize)
 	summ.positions = make([]uint64, summ.summarySize)
 	for i := 0; i < int(summ.summarySize); i++ {
 		var keysize uint64
 		if err := binary.Read(file, binary.BigEndian, &keysize); err != nil {
-			return err, nil
+			return nil, err
 		}
 		summ.keys[i] = make([]byte, keysize)
 		err := binary.Read(file, binary.BigEndian, &summ.keys[i])
 		if err != nil {
-			return err, nil
+			return nil, err
 		}
 		err = binary.Read(file, binary.BigEndian, &summ.positions[i])
 		if err != nil {
-			return err, nil
+			return nil, err
+
 		}
 	}
+	return &summ, nil
+}
 
-	return nil, &summ
+func (summary *Summary) FindKey(key []byte) (int64, error) {
+	for i := 0; i < int(summary.summarySize); i++ {
+		if bytes.Compare(summary.keys[i], key) == 0 {
+			return int64(summary.positions[i]), nil
+		}
+	}
+	return 0, fmt.Errorf("not found")
 }

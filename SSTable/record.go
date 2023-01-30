@@ -3,6 +3,7 @@ package SSTable
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"time"
@@ -61,4 +62,35 @@ func (rec *Record) Write(writer io.Writer) error {
 	_, err := writer.Write(buf.Bytes())
 
 	return err
+}
+func (rec *Record) Read(reader io.Reader) error {
+	if err := binary.Read(reader, binary.BigEndian, &rec.CRC); err != nil {
+		return err
+	}
+	if err := binary.Read(reader, binary.BigEndian, &rec.Timestamp); err != nil {
+		return err
+	}
+	if err := binary.Read(reader, binary.BigEndian, &rec.Tombstone); err != nil {
+		return err
+	}
+	if err := binary.Read(reader, binary.BigEndian, &rec.KeySize); err != nil {
+		return err
+	}
+	if err := binary.Read(reader, binary.BigEndian, &rec.ValueSize); err != nil {
+		return err
+	}
+
+	rec.Key = make([]byte, rec.KeySize)
+	if err := binary.Read(reader, binary.BigEndian, &rec.Key); err != nil {
+		return err
+	}
+
+	rec.Value = make([]byte, rec.ValueSize)
+	if err := binary.Read(reader, binary.BigEndian, &rec.Value); err != nil {
+		return err
+	}
+	if rec.CRC != crc32.ChecksumIEEE(rec.Key) {
+		return fmt.Errorf("verification")
+	}
+	return nil
 }

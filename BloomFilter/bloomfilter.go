@@ -74,17 +74,17 @@ func (bf *BloomFilter) Serialize(writer io.Writer) error {
 	return nil
 }
 
-func Read(file *os.File, offset int64) (error, *BloomFilter) {
+func Read(file *os.File, offset int64) (*BloomFilter, error) {
 	bf := BloomFilter{}
 	_, err := file.Seek(offset, 0)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &bf.m); err != nil {
-		return err, nil
+		return nil, err
 	}
 	if err := binary.Read(file, binary.BigEndian, &bf.k); err != nil {
-		return err, nil
+		return nil, err
 	}
 	bf.bits = make([]bool, bf.m)
 	bf.seeds = make([][]byte, bf.k)
@@ -92,17 +92,17 @@ func Read(file *os.File, offset int64) (error, *BloomFilter) {
 		bf.seeds[i] = make([]byte, 32)
 	}
 	if err := binary.Read(file, binary.BigEndian, &bf.bits); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	for i := 0; i < int(bf.k); i++ {
 		if err := binary.Read(file, binary.BigEndian, &bf.seeds[i]); err != nil {
-			return err, nil
+			return nil, err
 		}
 	}
 
 	bf.hashfns = CreateHashFunctionsFromSeeds(bf.k, bf.seeds)
-	return nil, &bf
+	return &bf, nil
 }
 
 //func main() {

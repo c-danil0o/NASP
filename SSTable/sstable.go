@@ -2,12 +2,13 @@ package SSTable
 
 import (
 	"encoding/binary"
-	"fmt"
 	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
 	skiplist "github.com/c-danil0o/NASP/SkipList"
 	"math"
 	"os"
 )
+
+const SegmentSize = 3
 
 type SSTable struct {
 	dataFilename     string
@@ -34,7 +35,7 @@ func NewSSTable(dataSize uint64) *SSTable {
 		metadataFilename: "usertable-" + "0" + "-Metadata.db",
 		generation:       0,
 		DataSize:         dataSize,
-		SegmentSize:      3,
+		SegmentSize:      SegmentSize,
 	}
 }
 
@@ -69,7 +70,7 @@ func Init(nodes []*skiplist.SkipNode) error {
 			}
 			index.keys[count] = nodes[count].Key
 			index.positions[count] = offset
-			indexOffset += uint64(len(nodes[count].Key)) + 8 // keylength + uint64 - position
+			indexOffset += 8 + uint64(len(nodes[count].Key)) + 8 // keylength + uint64 - position
 			var timestampConvert [16]byte
 			binary.PutVarint(timestampConvert[:], nodes[count].Timestamp)
 			tempRecord := Record{
@@ -81,10 +82,11 @@ func Init(nodes []*skiplist.SkipNode) error {
 				Key:       nodes[count].Key,
 				Value:     nodes[count].Value,
 			}
-			offset += tempRecord.RecordSize()
+
 			if err := tempRecord.Write(dataFile); err != nil {
 				return err
 			}
+			offset += tempRecord.RecordSize()
 			count += 1
 
 		}
@@ -108,15 +110,18 @@ func Init(nodes []*skiplist.SkipNode) error {
 	indexFile.Sync()
 	summaryFile.Sync()
 	bloomFile.Sync()
-	_, first, last := ReadFirstLast(summaryFile, 0)
-	fmt.Println(first, last)
-	_, newSumm := ReadSummary(summaryFile, 0)
-	fmt.Println(newSumm)
-	_, newbf := bloomfilter.Read(bloomFile, 0)
-	fmt.Println(newbf.Find([]byte("abcdef")))
 	return nil
 }
 
-func (sst *SSTable) generateData() {
-
+func ReadData(file *os.File, offset int64) (*Record, error) {
+	_, err := file.Seek(offset, 0)
+	if err != nil {
+		return nil, err
+	}
+	record := Record{}
+	err = record.Read(file)
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

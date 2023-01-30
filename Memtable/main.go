@@ -28,7 +28,6 @@ func Flush(mt *Memtable) {
 	if err != nil {
 		return
 	}
-	fmt.Println(list)
 
 }
 func ReadFile(filename string) map[string]int {
