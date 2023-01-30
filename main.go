@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/c-danil0o/NASP/Finder"
 	mt "github.com/c-danil0o/NASP/Memtable"
 )
@@ -71,6 +72,8 @@ func main() {
 	mt.Active.Add(mt.Element{Key: []byte("abcder"), Value: []byte("danilo")})
 	mt.CheckThreshold()
 	mt.Active.Add(mt.Element{Key: []byte("abcdes"), Value: []byte("danilo")})
+	mt.CheckThreshold()
+	mt.Active.Add(mt.Element{Key: []byte("abcdet"), Value: []byte("danilo")})
 	mt.CheckThreshold()
 
 	mt.Active.Print()
