@@ -1,21 +1,18 @@
 package memtable
 
 import (
-	"encoding/json"
-	"fmt"
+	config "github.com/c-danil0o/NASP/Config"
 	sst "github.com/c-danil0o/NASP/SSTable"
-	"io/ioutil"
-	"os"
 )
 
 var Active Memtable
 var Second Memtable
 var Generation uint32
 
-func Init(capacity int, numOfSegments int, threshold int) {
+func Init() {
 	Generation = 0
-	Active = *CreateMemtable(capacity, numOfSegments, threshold)
-	Second = *CreateMemtable(capacity, numOfSegments, threshold)
+	Active = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
+	Second = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
 }
 func CheckThreshold() error {
 	if Active.data.Size() >= Active.Threshold {
@@ -36,18 +33,4 @@ func Flush(mt *Memtable) error {
 		return err
 	}
 	return nil
-}
-func ReadFile(filename string) map[string]int {
-	jsonFile, err := os.Open(filename)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	var result map[string]int
-	json.Unmarshal([]byte(byteValue), &result)
-
-	return result
 }

@@ -1,6 +1,8 @@
 package memtable
 
-import s "github.com/c-danil0o/NASP/SkipList"
+import (
+	container "github.com/c-danil0o/NASP/DataContainer"
+)
 
 type Element struct {
 	Key       []byte
@@ -13,15 +15,20 @@ type Memtable struct {
 	capacity      int
 	numOfSegments int
 	Threshold     int
-	data          s.SkipList
+	data          container.Container
 }
 
-func CreateMemtable(capacity int, numOfSegments int, threshold int) *Memtable {
+func CreateMemtable(capacity int, threshold int, structure int) *Memtable {
+	var data container.Container
+	if structure == 0 {
+		data = container.NewSkipList()
+	} else if structure == 1 {
+		//data = *b.newBtree()
+	}
 	return &Memtable{
-		capacity:      capacity,
-		numOfSegments: numOfSegments,
-		Threshold:     threshold,
-		data:          *s.NewSkipList(),
+		capacity:  capacity,
+		Threshold: threshold,
+		data:      data,
 	}
 }
 
@@ -36,5 +43,5 @@ func (mt *Memtable) Print() {
 	mt.data.Print()
 }
 func (mt *Memtable) Clear() {
-	mt.data = *s.NewSkipList()
+	mt.data = container.NewSkipList()
 }

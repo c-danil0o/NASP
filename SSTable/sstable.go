@@ -1,15 +1,16 @@
 package SSTable
 
 import (
+	"bytes"
 	"encoding/binary"
 	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
-	skiplist "github.com/c-danil0o/NASP/SkipList"
+	config "github.com/c-danil0o/NASP/Config"
+	container "github.com/c-danil0o/NASP/DataContainer"
+	"io"
 	"math"
 	"os"
 	"strconv"
 )
-
-const SegmentSize = 3
 
 type SSTable struct {
 	dataFilename     string
@@ -32,15 +33,15 @@ func NewSSTable(dataSize uint64, generation uint32) *SSTable {
 		indexFilename:    "usertable-" + strconv.Itoa(int(generation)) + "-Index.db",
 		summaryFilename:  "usertable-" + strconv.Itoa(int(generation)) + "-Summary.db",
 		filterFilename:   "usertable-" + strconv.Itoa(int(generation)) + "-Filter.db",
-		TOCFilename:      "usertable-" + strconv.Itoa(int(generation)) + "-TOC.db",
+		TOCFilename:      "usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt",
 		metadataFilename: "usertable-" + strconv.Itoa(int(generation)) + "-Metadata.db",
 		generation:       generation,
 		DataSize:         dataSize,
-		SegmentSize:      SegmentSize,
+		SegmentSize:      uint(config.SSTABLE_SEGMENT_SIZE),
 	}
 }
 
-func Init(nodes []*skiplist.SkipNode, generation uint32) error {
+func Init(nodes []container.DataNode, generation uint32) error {
 	count := 0
 	count2 := 0
 	sstable := NewSSTable(uint64(len(nodes)), generation)
@@ -49,11 +50,14 @@ func Init(nodes []*skiplist.SkipNode, generation uint32) error {
 	indexFile, _ := os.OpenFile(sstable.indexFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	summaryFile, _ := os.OpenFile(sstable.summaryFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	bloomFile, _ := os.OpenFile(sstable.filterFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
-	//metadataFile, _ := os.OpenFile(sstable.metadataFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
-
+	metadataFile, _ := os.OpenFile(sstable.metadataFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	tocFile, _ := os.OpenFile(sstable.TOCFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	sstable.makeTOC(tocFile)
+	merkleBuffer := make([]Record, len(nodes))
 	defer dataFile.Close()
 	defer indexFile.Close()
 	defer summaryFile.Close()
+	defer metadataFile.Close()
 	var offset uint64 = 0 // configure offset
 	var indexOffset uint64 = 0
 	var summarySize = int(math.Ceil(float64(len(nodes)) / float64(sstable.SegmentSize)))
@@ -62,28 +66,28 @@ func Init(nodes []*skiplist.SkipNode, generation uint32) error {
 	sstable.Bloom = *bloomfilter.NewBloomFilter(len(nodes)+50, 0.1)
 	for count < len(nodes) {
 		for i := 0; i < int(sstable.SegmentSize) && count < len(nodes); i++ {
-			sstable.Bloom.Add(nodes[count].Key)
+			sstable.Bloom.Add(nodes[count].Key())
 			if i == 0 {
-				summary.keys[count2] = nodes[count].Key
+				summary.keys[count2] = nodes[count].Key()
 				summary.positions[count2] = indexOffset
 
 				count2++
 			}
-			index.keys[count] = nodes[count].Key
+			index.keys[count] = nodes[count].Key()
 			index.positions[count] = offset
-			indexOffset += 8 + uint64(len(nodes[count].Key)) + 8 // keylength + uint64 - position
+			indexOffset += 8 + uint64(len(nodes[count].Key())) + 8 // keylength + uint64 - position
 			var timestampConvert [16]byte
-			binary.PutVarint(timestampConvert[:], nodes[count].Timestamp)
+			binary.PutVarint(timestampConvert[:], nodes[count].Timestamp())
 			tempRecord := Record{
 				CRC:       0,
 				Timestamp: timestampConvert,
-				Tombstone: nodes[count].Tombstone,
+				Tombstone: nodes[count].Tombstone(),
 				KeySize:   0,
 				ValueSize: 0,
-				Key:       nodes[count].Key,
-				Value:     nodes[count].Value,
+				Key:       nodes[count].Key(),
+				Value:     nodes[count].Value(),
 			}
-
+			merkleBuffer[count] = tempRecord
 			if err := tempRecord.Write(dataFile); err != nil {
 				return err
 			}
@@ -108,6 +112,13 @@ func Init(nodes []*skiplist.SkipNode, generation uint32) error {
 	if err != nil {
 		return err
 	}
+	var buf bytes.Buffer
+	merkleRoot := GenerateMerkle(merkleBuffer)
+	err = SerializeMerkleNodes(metadataFile, &buf, merkleRoot.Root)
+	if err != nil {
+		return err
+	}
+	metadataFile.Sync()
 	indexFile.Sync()
 	summaryFile.Sync()
 	bloomFile.Sync()
@@ -125,4 +136,13 @@ func ReadData(file *os.File, offset int64) (*Record, error) {
 		return nil, err
 	}
 	return &record, nil
+}
+
+func (sst *SSTable) makeTOC(writer io.Writer) error {
+	writer.Write([]byte("data:" + sst.dataFilename + "\n"))
+	writer.Write([]byte("index:" + sst.indexFilename + "\n"))
+	writer.Write([]byte("filter:" + sst.filterFilename + "\n"))
+	writer.Write([]byte("summary:" + sst.summaryFilename + "\n"))
+	writer.Write([]byte("metadata:" + sst.metadataFilename + "\n"))
+	return nil
 }

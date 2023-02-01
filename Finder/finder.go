@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
+	config "github.com/c-danil0o/NASP/Config"
 	"github.com/c-danil0o/NASP/SSTable"
 	"os"
 	"strings"
@@ -58,7 +59,7 @@ func FindKey(key []byte) (bool, *SSTable.Record, error) {
 			if err != nil {
 				return false, nil, err
 			}
-			dataPosition, err := SSTable.FindIDSegment(key, indexFile, offset, SSTable.SegmentSize)
+			dataPosition, err := SSTable.FindIDSegment(key, indexFile, offset, config.SSTABLE_SEGMENT_SIZE)
 
 			foundRecord, err := SSTable.ReadData(dataFile, dataPosition)
 

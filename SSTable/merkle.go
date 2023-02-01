@@ -1,11 +1,10 @@
-package merkle
+package SSTable
 
 import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
-	"github.com/c-danil0o/NASP/SSTable"
 	"io"
 	"math"
 )
@@ -18,13 +17,13 @@ type Node struct {
 	//data     interface{} // /vrednosti njega samog ako je list
 
 	hashData [20]byte //hes kljuc vrednosti ispod njega
-	data     SSTable.Record
+	data     Record
 	left     *Node
 	right    *Node
 	leaf     bool //bice true akko je cvor poslednji tj list
 }
 
-func GenerateMerkle(dataSlice []SSTable.Record) *MerkleRoot {
+func GenerateMerkle(dataSlice []Record) *MerkleRoot {
 	//var dataSlice = []interface{}{1, 2, 3, 4, 5, 6, 7} //ovo ce biti prosledjeni parametar funkciji samo da vidimo
 
 	var depth int = 1                 //broji kolika je visina stabla
@@ -40,7 +39,7 @@ func GenerateMerkle(dataSlice []SSTable.Record) *MerkleRoot {
 	return &mr
 }
 
-func generateNodes(noOfElements int, depth int, indexOfElement *int, dataSlice []SSTable.Record) *Node {
+func generateNodes(noOfElements int, depth int, indexOfElement *int, dataSlice []Record) *Node {
 
 	spaceCovered := math.Pow(2, float64(depth))
 	var n Node = Node{left: nil, right: nil, leaf: false}
