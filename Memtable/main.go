@@ -27,6 +27,7 @@ func CheckThreshold() error {
 }
 func Flush(mt *Memtable) error {
 	list := mt.data.GetSortedData()
+	//err := sst.Init(list, Generation)
 	err := sst.Init(list, Generation)
 	Generation++
 	if err != nil {

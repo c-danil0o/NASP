@@ -27,7 +27,7 @@ func main() {
 	mt.Active.Add(mt.Element{Key: []byte("abcdee"), Value: []byte("danilo")})
 	mt.CheckThreshold()
 
-	found, record, err := Finder.FindKey([]byte("abcded"))
+	found, record, err := Finder.FindKey([]byte("abcdef"))
 	if err != nil {
 		return
 	}

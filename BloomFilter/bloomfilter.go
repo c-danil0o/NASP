@@ -56,7 +56,7 @@ func (bf *BloomFilter) Find(value []byte) bool {
 }
 
 // serializing bits, m, k, seeds
-func (bf *BloomFilter) Serialize(writer io.Writer) error {
+func (bf *BloomFilter) Serialize(writer io.Writer) (int64, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.BigEndian, bf.m)
 	err = binary.Write(&buf, binary.BigEndian, bf.k)
@@ -65,13 +65,14 @@ func (bf *BloomFilter) Serialize(writer io.Writer) error {
 		err = binary.Write(&buf, binary.BigEndian, bf.seeds[i])
 	}
 	if err != nil {
-		return err
+		return 0, err
 	}
 	_, err = writer.Write(buf.Bytes())
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	size := int64(len(buf.Bytes()))
+	return size, nil
 }
 
 func Read(file *os.File, offset int64) (*BloomFilter, error) {
