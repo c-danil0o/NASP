@@ -1,5 +1,10 @@
 {
 	"memtable_capacity": 9000,
-	"memtable_num_of_segments": 2,
-    "memtable_threshold": 5
+    "memtable_threshold": 5,
+	"memtable_structure" : 0,
+	"sstable_multiple_files": 0,
+	"sstable_segment_size": 3,
+	"lsm_depth": 4,
+	"cache_size": 100
+
 }

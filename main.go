@@ -2,19 +2,15 @@ package main
 
 import (
 	"fmt"
+	config "github.com/c-danil0o/NASP/Config"
 
 	"github.com/c-danil0o/NASP/Finder"
 	mt "github.com/c-danil0o/NASP/Memtable"
 )
 
 func main() {
-
-	result := mt.ReadFile("config.json")
-
-	kapacitet := result["memtable_capacity"]
-	brSeg := result["memtable_num_of_segments"]
-	treshold := result["memtable_threshold"]
-	mt.Init(kapacitet, brSeg, treshold)
+	config.ReadConfig("config.json")
+	mt.Init()
 	mt.CheckThreshold()
 	mt.Active.Add(mt.Element{Key: []byte("abcdea"), Value: []byte("danilo")})
 	mt.CheckThreshold()
@@ -31,7 +27,7 @@ func main() {
 	mt.Active.Add(mt.Element{Key: []byte("abcdee"), Value: []byte("danilo")})
 	mt.CheckThreshold()
 
-	found, record, err := Finder.FindKey([]byte("abcdeg"))
+	found, record, err := Finder.FindKey([]byte("abcded"))
 	if err != nil {
 		return
 	}
