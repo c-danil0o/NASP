@@ -123,7 +123,7 @@ func get() *container.Element {
 }
 
 func delete() bool {
-	if record := Get(); record != nil {
+	if record := get(); record != nil {
 		if record.Tombstone != 2 {
 			if err := wal.Active.WriteRecord(wal.LogRecord{Tombstone: 1, Key: record.Key, Value: record.Value}); err != nil {
 				errorMsg()
