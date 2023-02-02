@@ -34,9 +34,8 @@ func CreateMemtable(capacity int, threshold int, structure int) *Memtable {
 	}
 }
 
-func (mt *Memtable) Add(el Element) error {
-	el.Timestamp = time.Now().UnixNano()
-	mt.data.Insert(el.Key, el.Value, el.Timestamp, el.Tombstone)
+func (mt *Memtable) Add(key []byte, value []byte) error {
+	mt.data.Insert(key, value, time.Now().UnixNano(), 0)
 	return CheckThreshold()
 
 }
@@ -50,15 +49,16 @@ func (mt *Memtable) Clear() {
 	mt.data = container.NewSkipList()
 }
 
-func (mt *Memtable) Find(key string) *container.Element {
+func (mt *Memtable) Find(key string) container.DataNode {
 	res := mt.data.Find([]byte(key))
 	if res != nil {
-		return &container.Element{
-			Timestamp: res.Timestamp(),
-			Tombstone: res.Tombstone(),
-			Key:       res.Key(),
-			Value:     res.Value(),
-		}
+		return res
+		//return container.DataNode{
+		//	Timestamp: res.Timestamp(),
+		//	Tombstone: res.Tombstone(),
+		//	Key:       res.Key(),
+		//	Value:     res.Value(),
+		//}
 	}
 	return nil
 }

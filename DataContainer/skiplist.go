@@ -17,6 +17,7 @@ const (
 	//MAX_KEY        = math.MaxInt32
 )
 
+// SkipNode implements DataNode interface
 type SkipNode struct {
 	key       []byte
 	value     []byte

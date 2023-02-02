@@ -41,11 +41,11 @@ func menu() int {
 			}
 		case 2:
 			if record := get(); record != nil {
-				if record.Tombstone != 2 {
-					fmt.Printf("Key: %s\n", record.Key)
-					fmt.Printf("Value: %s\n", record.Value)
-					fmt.Printf("Timestamp: %d\n", record.Timestamp)
-					fmt.Printf("Tombstone: %d\n", record.Tombstone)
+				if record.Tombstone() != 2 {
+					fmt.Printf("Key: %s\n", record.Key())
+					fmt.Printf("Value: %s\n", record.Value())
+					fmt.Printf("Timestamp: %d\n", record.Timestamp())
+					fmt.Printf("Tombstone: %d\n", record.Tombstone())
 				} else {
 					fmt.Println("Trazeni rekord nije pronadjen.")
 				}
@@ -88,14 +88,14 @@ func put() bool {
 		return false
 	}
 
-	if err := mt.Active.Add(mt.Element{Key: []byte(key), Value: val, Tombstone: 0}); err != nil {
+	if err := mt.Active.Add([]byte(key), val); err != nil {
 		return false
 	}
 
 	return true
 }
 
-func get() *container.Element {
+func get() container.DataNode {
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
 	n, err := fmt.Scanf("%s", &key)
@@ -105,7 +105,7 @@ func get() *container.Element {
 
 	// Searching in memtable
 	memRes := mt.Active.Find(key)
-	if memRes != nil && memRes.Tombstone != 2 { // then we have valid return value
+	if memRes != nil && memRes.Tombstone() != 2 { // then we have valid return value
 		return memRes
 	}
 
@@ -115,7 +115,7 @@ func get() *container.Element {
 		fmt.Println(err)
 		return nil
 	} else if !found {
-		return &container.Element{Tombstone: 2}
+		return retVal
 	} else {
 		// TODO: ucitati u cache
 		return retVal
@@ -124,12 +124,12 @@ func get() *container.Element {
 
 func delete() bool {
 	if record := get(); record != nil {
-		if record.Tombstone != 2 {
-			if err := wal.Active.WriteRecord(wal.LogRecord{Tombstone: 1, Key: record.Key, Value: record.Value}); err != nil {
+		if record.Tombstone() != 2 {
+			if err := wal.Active.WriteRecord(wal.LogRecord{Tombstone: 1, Key: record.Key(), Value: record.Value()}); err != nil {
 				errorMsg()
 				return false
 			}
-			mt.Active.Delete(record.Key)
+			mt.Active.Delete(record.Key())
 			return true
 		}
 		fmt.Println("Trazeni rekord ne postoji.")

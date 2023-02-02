@@ -85,12 +85,12 @@ func Init(nodes []container.DataNode, generation uint32) error {
 				binary.PutVarint(timestampConvert[:], nodes[count].Timestamp())
 				tempRecord := Record{
 					CRC:       0,
-					Timestamp: timestampConvert,
-					Tombstone: nodes[count].Tombstone(),
+					timestamp: timestampConvert,
+					tombstone: nodes[count].Tombstone(),
 					KeySize:   0,
 					ValueSize: 0,
-					Key:       nodes[count].Key(),
-					Value:     nodes[count].Value(),
+					key:       nodes[count].Key(),
+					value:     nodes[count].Value(),
 				}
 				merkleBuffer[count] = tempRecord
 				if err := tempRecord.Write(dataFile); err != nil {
@@ -171,12 +171,12 @@ func InitSingle(nodes []container.DataNode, generation uint32) error {
 			binary.PutVarint(timestampConvert[:], nodes[count].Timestamp())
 			tempRecord := Record{
 				CRC:       0,
-				Timestamp: timestampConvert,
-				Tombstone: nodes[count].Tombstone(),
+				timestamp: timestampConvert,
+				tombstone: nodes[count].Tombstone(),
 				KeySize:   0,
 				ValueSize: 0,
-				Key:       nodes[count].Key(),
-				Value:     nodes[count].Value(),
+				key:       nodes[count].Key(),
+				value:     nodes[count].Value(),
 			}
 			merkleBuffer[count] = tempRecord
 			if err := tempRecord.Write(dataFile); err != nil {
