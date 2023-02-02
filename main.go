@@ -53,8 +53,9 @@ func menu() int {
 				errorMsg()
 			}
 		case 3:
-			// TODO:
-			fmt.Println("Brisanje")
+			if delete() {
+				fmt.Println("Uneseni rekord je uspjesno izbrisan.")
+			}
 		case 4:
 			// TODO:
 			fmt.Println("Listanje")
@@ -119,6 +120,23 @@ func get() *container.Element {
 		// TODO: ucitati u cache
 		return retVal
 	}
+}
+
+func delete() bool {
+	if record := Get(); record != nil {
+		if record.Tombstone != 2 {
+			if err := wal.Active.WriteRecord(wal.LogRecord{Tombstone: 1, Key: record.Key, Value: record.Value}); err != nil {
+				errorMsg()
+				return false
+			}
+			mt.Active.Delete(record.Key)
+			return true
+		}
+		fmt.Println("Trazeni rekord ne postoji.")
+		return false
+	}
+	errorMsg()
+	return false
 }
 
 func main() {
