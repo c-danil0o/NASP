@@ -5,6 +5,6 @@
 	"sstable_multiple_files": 0,
 	"sstable_segment_size": 3,
 	"lsm_depth": 4,
-	"cache_size": 100
-
+	"cache_size": 100,
+	"wal_segment_size": 2
 }

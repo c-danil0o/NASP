@@ -1,9 +1,10 @@
 // Functions needed for writing logs
-package main
+package WAL
 
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"os"
@@ -13,8 +14,6 @@ import (
 
 // Writes single record
 func (record *LogRecord) Write(writer io.Writer) error {
-	// Making CRC hash
-	record.CRC = crc32.ChecksumIEEE(record.Key)
 
 	// Getting current time
 	timestamp := time.Now().UnixNano()
@@ -27,6 +26,16 @@ func (record *LogRecord) Write(writer io.Writer) error {
 	// Getting length of value
 	valueLen := uint64(len(record.Value))
 	record.ValueSize = valueLen
+
+	// Making CRC hash
+	var combined []byte
+	combined = append(combined, record.Timestamp[:]...)
+	combined = append(combined, record.Tombstone)
+	combined = append(combined, byte(record.KeySize))
+	combined = append(combined, byte(record.ValueSize))
+	combined = append(combined, record.Key...)
+	combined = append(combined, record.Value...)
+	record.CRC = crc32.ChecksumIEEE(combined)
 
 	// Create a buffer for the record
 	var buf bytes.Buffer
@@ -47,32 +56,32 @@ func (record *LogRecord) Write(writer io.Writer) error {
 }
 
 // Main function for writing record
-func (wal *SegmentedWAL) writeWal(record LogRecord) error {
-	// There are more segments in current file than allowed
-	if wal.currentSize+1 > MAX_SEGMENT_SIZE {
-		// Closing current segment
-		if err := wal.currentSegment.Close(); err != nil {
-			return err
-		}
-
-		// Opening new segment
-		segmentName := WAL_STR + strconv.Itoa(wal.segmentCount) + LOG_STR
-		var err error
-		wal.currentSegment, err = os.OpenFile(segmentName, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
-		if err != nil {
-			return err
-		}
-		wal.segmentCount++
-		wal.currentSize = 0
+func (wal *SegmentedWAL) WriteRecord(record LogRecord) error {
+	// Going to next segment
+	if wal.CurrentSize+1 > wal.SegmentSize {
+		wal.SegmentCount++
+		wal.CurrentSize = 0
 	}
+
+	// Openning current file for segment
+	var err error
+	wal.CurrentSegment, err = os.OpenFile(WAL_STR+strconv.Itoa(wal.SegmentCount)+LOG_STR, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	// Write the record to the file
-	if err := record.Write(wal.currentSegment); err != nil {
+	if err := record.Write(wal.CurrentSegment); err != nil {
+		fmt.Println(err)
 		return err
 	}
 
 	// Flush the file
-	if err := wal.currentSegment.Sync(); err != nil {
+	if err := wal.CurrentSegment.Sync(); err != nil {
+		fmt.Println(err)
 		return err
 	}
+	wal.CurrentSize++
 	return nil
 }

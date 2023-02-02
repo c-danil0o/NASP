@@ -3,11 +3,14 @@ package Finder
 import (
 	"bufio"
 	"bytes"
-	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
-	config "github.com/c-danil0o/NASP/Config"
-	"github.com/c-danil0o/NASP/SSTable"
+	"encoding/binary"
 	"os"
 	"strings"
+
+	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
+	config "github.com/c-danil0o/NASP/Config"
+	container "github.com/c-danil0o/NASP/DataContainer"
+	"github.com/c-danil0o/NASP/SSTable"
 )
 
 func readTOC(filename string) (map[string]string, error) {
@@ -32,7 +35,7 @@ func readTOC(filename string) (map[string]string, error) {
 	return data, nil
 
 }
-func FindKey(key []byte) (bool, *SSTable.Record, error) {
+func FindKey(key []byte) (bool, *container.Element, error) {
 	if config.SSTABLE_MULTIPLE_FILES == 1 {
 		filenames, err := readTOC("usertable-0-TOC.txt")
 		if err != nil {
@@ -67,7 +70,12 @@ func FindKey(key []byte) (bool, *SSTable.Record, error) {
 				if err != nil {
 					return false, nil, err
 				}
-				return true, foundRecord, nil
+				return true, &container.Element{
+					Timestamp: int64(binary.LittleEndian.Uint64(foundRecord.Timestamp[:])),
+					Tombstone: foundRecord.Tombstone,
+					Key:       foundRecord.Key,
+					Value:     foundRecord.Value,
+				}, nil
 			}
 		}
 		return false, nil, nil
@@ -100,7 +108,12 @@ func FindKey(key []byte) (bool, *SSTable.Record, error) {
 				if err != nil {
 					return false, nil, err
 				}
-				return true, foundRecord, nil
+				return true, &container.Element{
+					Timestamp: int64(binary.BigEndian.Uint64(foundRecord.Timestamp[:])),
+					Tombstone: foundRecord.Tombstone,
+					Key:       foundRecord.Key,
+					Value:     foundRecord.Value,
+				}, nil
 			}
 		}
 		return false, nil, nil

@@ -1,9 +1,9 @@
-// Constants and structures
-package main
+package WAL
 
-import "os"
+import (
+	"os"
+)
 
-const MAX_SEGMENT_SIZE = 2 // maximum number of records per segment
 const WAL_STR = "wal-"
 const LOG_STR = ".log"
 
@@ -20,7 +20,8 @@ type LogRecord struct {
 
 // Entire WAL that's segmented
 type SegmentedWAL struct {
-	currentSegment *os.File
-	segmentCount   int
-	currentSize    int
+	CurrentSegment *os.File
+	SegmentCount   int
+	CurrentSize    int
+	SegmentSize    int
 }

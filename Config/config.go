@@ -14,6 +14,7 @@ var SSTABLE_MULTIPLE_FILES = 0
 var SSTABLE_SEGMENT_SIZE = 3
 var LSM_DEPTH = 4
 var CACHE_SIZE = 100
+var WAL_SEGMENT_SIZE = 10
 
 //  TODO var TOKEN_BUCKET config
 
@@ -49,4 +50,5 @@ func loadValues(data map[string]int) {
 	SSTABLE_SEGMENT_SIZE = data["sstable_segment_size"]
 	LSM_DEPTH = data["lsm_depth"]
 	CACHE_SIZE = data["cache_size"]
+	WAL_SEGMENT_SIZE = data["wal_segment_size"]
 }

@@ -1,6 +1,8 @@
 package memtable
 
 import (
+	"time"
+
 	container "github.com/c-danil0o/NASP/DataContainer"
 )
 
@@ -32,8 +34,10 @@ func CreateMemtable(capacity int, threshold int, structure int) *Memtable {
 	}
 }
 
-func (mt *Memtable) Add(el Element) {
+func (mt *Memtable) Add(el Element) error {
+	el.Timestamp = time.Now().UnixNano()
 	mt.data.Insert(el.Key, el.Value, el.Timestamp, el.Tombstone)
+	return CheckThreshold()
 
 }
 func (mt *Memtable) Delete(key []byte) {
@@ -44,4 +48,17 @@ func (mt *Memtable) Print() {
 }
 func (mt *Memtable) Clear() {
 	mt.data = container.NewSkipList()
+}
+
+func (mt *Memtable) Find(key string) *container.Element {
+	res := mt.data.Find([]byte(key))
+	if res != nil {
+		return &container.Element{
+			Timestamp: res.Timestamp(),
+			Tombstone: res.Tombstone(),
+			Key:       res.Key(),
+			Value:     res.Value(),
+		}
+	}
+	return nil
 }

@@ -1,62 +1,67 @@
 // Functions needed for reading log files
-package main
+package WAL
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
-	"io"
 
 	"github.com/edsrzf/mmap-go"
 )
 
-// Reads single record from the file
-func (record *LogRecord) Read(reader io.Reader) error {
-	if err := binary.Read(reader, binary.BigEndian, &record.CRC); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, binary.BigEndian, &record.Timestamp); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, binary.BigEndian, &record.Tombstone); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, binary.BigEndian, &record.KeySize); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, binary.BigEndian, &record.ValueSize); err != nil {
-		return err
-	}
+// Reading single record
+func ReadRecord(data mmap.MMap) (LogRecord, error) {
+	record := &LogRecord{}
+
+	var offset uint64
+	record.CRC = binary.BigEndian.Uint32(data[offset : offset+4])
+	offset += 4
+
+	copy(record.Timestamp[:], data[offset:offset+16])
+	offset += 16
+
+	record.Tombstone = data[offset]
+	offset++
+
+	record.KeySize = binary.BigEndian.Uint64(data[offset : offset+8])
+	offset += 8
+
+	record.ValueSize = binary.BigEndian.Uint64(data[offset : offset+8])
+	offset += 8
+
 	record.Key = make([]byte, record.KeySize)
-	if err := binary.Read(reader, binary.BigEndian, &record.Key); err != nil {
-		return err
-	}
+	copy(record.Key, data[offset:offset+record.KeySize])
+	offset += record.KeySize
 
 	record.Value = make([]byte, record.ValueSize)
-	if err := binary.Read(reader, binary.BigEndian, &record.Value); err != nil {
-		return err
+	copy(record.Value, data[offset:offset+record.ValueSize])
+	offset += record.ValueSize
+
+	var combined []byte
+	combined = append(combined, record.Timestamp[:]...)
+	combined = append(combined, record.Tombstone)
+	combined = append(combined, byte(record.KeySize))
+	combined = append(combined, byte(record.ValueSize))
+	combined = append(combined, record.Key...)
+	combined = append(combined, record.Value...)
+	if record.CRC != crc32.ChecksumIEEE(combined) {
+		return *record, fmt.Errorf("CRC verification failed")
 	}
 
-	return nil
+	return *record, nil
 }
 
 // Read the records from the byte slice
-func readRecords(data mmap.MMap) error {
+func AllRecords(data mmap.MMap) error {
 	var offset uint64
-	for offset < uint64(len(data)) {
-		// Create a new LogRecord
-		record := &LogRecord{}
 
-		// Read the record from the byte slice
-		if err := record.Read(bytes.NewReader(data[offset:])); err != nil {
+	for offset < uint64(len(data)) {
+		// Create a new LogRecord and fill with info
+		record, err := ReadRecord(data[offset:])
+		if err != nil {
 			return err
 		}
-
-		// Verify the CRC
-		if record.CRC != crc32.ChecksumIEEE(record.Key) {
-			return fmt.Errorf("verification")
-		}
+		offset += record.recordSize()
 
 		// Print the record
 		fmt.Println()
@@ -67,9 +72,6 @@ func readRecords(data mmap.MMap) error {
 		fmt.Printf("ValueSize: %d\n", record.ValueSize)
 		fmt.Printf("Key: %s\n", record.Key)
 		fmt.Printf("Value: %s\n", record.Value)
-
-		// Update the offset
-		offset += record.recordSize()
 	}
 	return nil
 }
