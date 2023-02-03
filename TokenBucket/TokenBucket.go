@@ -14,7 +14,7 @@ func CreateTokenBucket() TokenBucket {
 	return TokenBucket{lastRequest: time.Now(), numberOfReq: config.REQUEST_PERMIN}
 }
 
-func IsReady(bucket TokenBucket) bool {
+func (bucket TokenBucket) IsReady() bool {
 	var ready = false
 	currentTime := time.Now()
 	endTime := bucket.lastRequest.Add(time.Minute)
