@@ -126,7 +126,22 @@ func (s *SkipList) PrefixScan(key []byte) []DataNode {
 		}
 		node = node.forward[0]
 	}
+	return retVal
+}
 
+func (s *SkipList) RangeScan(minKey []byte, maxKey []byte) []DataNode {
+	var node *SkipNode
+	for i := int(s.maxLevel - 1); i >= 0; i-- {
+		node = s.head.forward[i]
+	}
+
+	var retVal []DataNode
+	for node != nil && bytes.Compare(node.key, []byte(MAX_KEY)) != 0 {
+		if bytes.Compare(node.key, minKey) >= 0 && bytes.Compare(node.key, maxKey) <= 0 {
+			retVal = append(retVal, node)
+		}
+		node = node.forward[0]
+	}
 	return retVal
 }
 

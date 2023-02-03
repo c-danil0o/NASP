@@ -56,3 +56,7 @@ func (mt *Memtable) Find(key string) container.DataNode {
 func (mt *Memtable) PrefixScan(key string) []container.DataNode {
 	return mt.data.PrefixScan([]byte(key))
 }
+
+func (mt *Memtable) RangeScan(min string, max string) []container.DataNode {
+	return mt.data.RangeScan([]byte(min), []byte(max))
+}

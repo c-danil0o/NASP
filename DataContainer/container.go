@@ -15,6 +15,7 @@ type Container interface {
 	Insert(key []byte, value []byte, timestamp int64, tombstone byte)
 	Find(key []byte) DataNode
 	PrefixScan(key []byte) []DataNode
+	RangeScan(minKey []byte, maxKey []byte) []DataNode
 	Delete(key []byte)
 	Size() int
 	GetSortedData() []DataNode

@@ -78,3 +78,57 @@ func FindIDSegment(key []byte, file *os.File, start int64, count int) (int64, er
 	}
 	return 0, fmt.Errorf("not found")
 }
+
+func FindIDSegments(key []byte, file *os.File, start int64, count int) ([]int64, error) {
+	_, err := file.Seek(start, 0)
+	if err != nil {
+		return nil, err
+	}
+	var retVal []int64
+	for i := 0; i < count; i++ {
+		var keylen uint64
+		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
+			return nil, err
+		}
+		indexKey := make([]byte, keylen)
+		err := binary.Read(file, binary.BigEndian, &indexKey)
+		if err != nil {
+			return nil, err
+		}
+		var position uint64
+		if err := binary.Read(file, binary.BigEndian, &position); err != nil {
+			return nil, err
+		}
+		if bytes.HasPrefix(indexKey, key) {
+			retVal = append(retVal, int64(position))
+		}
+	}
+	return retVal, nil
+}
+
+func FindRangeIDSegments(minKey []byte, maxKey []byte, file *os.File, start int64, count int) ([]int64, error) {
+	_, err := file.Seek(start, 0)
+	if err != nil {
+		return nil, err
+	}
+	var retVal []int64
+	for i := 0; i < count; i++ {
+		var keylen uint64
+		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
+			return nil, err
+		}
+		indexKey := make([]byte, keylen)
+		err := binary.Read(file, binary.BigEndian, &indexKey)
+		if err != nil {
+			return nil, err
+		}
+		var position uint64
+		if err := binary.Read(file, binary.BigEndian, &position); err != nil {
+			return nil, err
+		}
+		if bytes.Compare(indexKey, minKey) >= 0 && bytes.Compare(maxKey, indexKey) >= 0 {
+			retVal = append(retVal, int64(position))
+		}
+	}
+	return retVal, nil
+}
