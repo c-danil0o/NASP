@@ -50,15 +50,9 @@ func (mt *Memtable) Clear() {
 }
 
 func (mt *Memtable) Find(key string) container.DataNode {
-	res := mt.data.Find([]byte(key))
-	if res != nil {
-		return res
-		//return container.DataNode{
-		//	Timestamp: res.Timestamp(),
-		//	Tombstone: res.Tombstone(),
-		//	Key:       res.Key(),
-		//	Value:     res.Value(),
-		//}
-	}
-	return nil
+	return mt.data.Find([]byte(key))
+}
+
+func (mt *Memtable) PrefixScan(key string) []container.DataNode {
+	return mt.data.PrefixScan([]byte(key))
 }

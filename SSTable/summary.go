@@ -161,6 +161,17 @@ func (summary *Summary) FindKey(key []byte) (int64, error) {
 	}
 	return 0, fmt.Errorf("not found")
 }
+
+func (summary *Summary) FindPrefixKeys(key []byte) ([]int64, error) {
+	var retVal []int64
+	for i := 0; i < int(summary.summarySize); i++ {
+		if bytes.HasPrefix(summary.keys[i], key) {
+			retVal = append(retVal, int64(summary.positions[i]))
+		}
+	}
+	return nil, fmt.Errorf("not found")
+}
+
 func (summary *Summary) UpdateOffset(offset uint64) {
 	for i := 0; i < int(summary.summarySize); i++ {
 		summary.positions[i] += offset

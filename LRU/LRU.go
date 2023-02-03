@@ -2,6 +2,8 @@ package LRU
 
 import (
 	"container/list"
+
+	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
 )
 
@@ -46,6 +48,12 @@ func (element *elementValue) SetTombstone(tombstone byte) {
 type Element struct {
 	key   []byte
 	value container.DataNode
+}
+
+var Active Cache
+
+func Init() {
+	Active = *CreateCache(config.CACHE_SIZE)
 }
 
 func CreateCache(size int) *Cache {

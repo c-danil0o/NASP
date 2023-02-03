@@ -113,6 +113,23 @@ func (s *SkipList) Find(key []byte) DataNode {
 	}
 }
 
+func (s *SkipList) PrefixScan(key []byte) []DataNode {
+	var node *SkipNode
+	for i := int(s.maxLevel - 1); i >= 0; i-- {
+		node = s.head.forward[i]
+	}
+
+	var retVal []DataNode
+	for node != nil && bytes.Compare(node.key, []byte(MAX_KEY)) != 0 {
+		if bytes.HasPrefix(node.key, key) {
+			retVal = append(retVal, node)
+		}
+		node = node.forward[0]
+	}
+
+	return retVal
+}
+
 func (s *SkipList) Insert(key []byte, value []byte, timestamp int64, tombstone byte) {
 	temp := s.Find(key)
 	if temp != nil {

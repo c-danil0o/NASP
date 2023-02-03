@@ -7,6 +7,7 @@ import (
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
 	"github.com/c-danil0o/NASP/Finder"
+	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
 	wal "github.com/c-danil0o/NASP/WAL"
 )
@@ -41,24 +42,25 @@ func menu() int {
 			}
 		case 2:
 			if record := get(); record != nil {
-				if record.Tombstone() != 2 {
-					fmt.Printf("Key: %s\n", record.Key())
-					fmt.Printf("Value: %s\n", record.Value())
-					fmt.Printf("Timestamp: %d\n", record.Timestamp())
-					fmt.Printf("Tombstone: %d\n", record.Tombstone())
-				} else {
-					fmt.Println("Trazeni rekord nije pronadjen.")
-				}
+				fmt.Printf("Key: %s\n", record.Key())
+				fmt.Printf("Value: %s\n", record.Value())
+				fmt.Printf("Timestamp: %d\n", record.Timestamp())
+				fmt.Printf("Tombstone: %d\n", record.Tombstone())
 			} else {
-				errorMsg()
+				fmt.Println("Trazeni rekord nije pronadjen.")
 			}
 		case 3:
 			if delete() {
 				fmt.Println("Uneseni rekord je uspjesno izbrisan.")
 			}
 		case 4:
-			// TODO:
-			fmt.Println("Listanje")
+			if res := list(); res != nil {
+				for i := range res {
+					fmt.Println(res[i].Key())
+				}
+			} else {
+				fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
+			}
 		case 5:
 			// TODO:
 			fmt.Println("Range scan")
@@ -89,6 +91,7 @@ func put() bool {
 	}
 
 	if err := mt.Active.Add([]byte(key), val); err != nil {
+		fmt.Println(err)
 		return false
 	}
 
@@ -104,20 +107,26 @@ func get() container.DataNode {
 	}
 
 	// Searching in memtable
-	memRes := mt.Active.Find(key)
-	if memRes != nil && memRes.Tombstone() != 2 { // then we have valid return value
-		return memRes
+	retVal := mt.Active.Find(key)
+	if retVal != nil { // then we have valid return value
+		return retVal
+	}
+
+	var found bool
+	retVal, found = lru.Active.Find([]byte(key))
+	if found {
+		return retVal
 	}
 
 	// If not found in memtable
-	found, retVal, err := Finder.FindKey([]byte(key))
+	found, retVal, err = Finder.FindKey([]byte(key))
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	} else if !found {
 		return retVal
 	} else {
-		// TODO: ucitati u cache
+		lru.Active.Insert(retVal)
 		return retVal
 	}
 }
@@ -139,10 +148,40 @@ func delete() bool {
 	return false
 }
 
+func list() []container.DataNode {
+	var key string
+	fmt.Print("\nUnesite kljuc: ")
+	n, err := fmt.Scanf("%s", &key)
+	if err != nil || n != 1 {
+		return nil
+	}
+
+	var retVal []container.DataNode
+
+	// Searching in memtable
+	ret := mt.Active.PrefixScan(key)
+	if ret != nil { // then we have valid return value
+		retVal = append(retVal, ret...)
+	}
+
+	// If not found in memtable
+	found, ret, err := Finder.PrefixScan([]byte(key))
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	} else if !found {
+		return retVal
+	} else {
+		retVal = append(retVal, ret...)
+	}
+	return retVal
+}
+
 func main() {
 	config.ReadConfig("config.json")
 
 	wal.Init()
 	mt.Init()
+	lru.Init()
 	menu()
 }
