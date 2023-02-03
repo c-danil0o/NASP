@@ -11,10 +11,10 @@ type TokenBucket struct {
 }
 
 func CreateTokenBucket() TokenBucket {
-	return TokenBucket{lastRequest: time.Now(), numberOfReq: config.REQUEST_PERMIN}
+	return TokenBucket{lastRequest: time.Now().Add(-5 * time.Second), numberOfReq: config.REQUEST_PERMIN}
 }
 
-func (bucket TokenBucket) IsReady() bool {
+func (bucket *TokenBucket) IsReady() bool {
 	var ready = false
 	currentTime := time.Now()
 	endTime := bucket.lastRequest.Add(time.Minute)
