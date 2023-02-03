@@ -126,24 +126,24 @@ func SerializeMerkleNodes(writer io.Writer, buf *bytes.Buffer, parentNode *Node)
 		err = binary.Write(buf, binary.BigEndian, parentNode.left.leaf)
 
 		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.CRC)
-		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.Timestamp)
-		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.Tombstone)
+		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.timestamp)
+		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.tombstone)
 		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.KeySize)
 		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.ValueSize)
-		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.Key)
-		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.Value)
+		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.key)
+		err = binary.Write(buf, binary.BigEndian, parentNode.left.data.value)
 
 		//upisivanje desnog lista
 		err = binary.Write(buf, binary.BigEndian, parentNode.right.hashData)
 		err = binary.Write(buf, binary.BigEndian, parentNode.right.leaf)
 
 		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.CRC)
-		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.Timestamp)
-		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.Tombstone)
+		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.timestamp)
+		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.tombstone)
 		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.KeySize)
 		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.ValueSize)
-		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.Key)
-		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.Value)
+		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.key)
+		err = binary.Write(buf, binary.BigEndian, parentNode.right.data.value)
 
 		return err
 	} else {
