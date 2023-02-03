@@ -6,10 +6,10 @@ import (
 )
 
 type Element struct {
-	Key       []byte
-	Value     []byte
-	Timestamp int64
-	Tombstone byte
+	key       []byte
+	value     []byte
+	timestamp int64
+	tombstone byte
 }
 
 type Node struct {
@@ -26,24 +26,85 @@ type BTree struct {
 func CreateBTree(T int) *BTree {
 	return &BTree{
 		root: &Node{
-			keys:     make([]*Element, 0),
-			children: make([]*Node, 0),
+			keys:     make([]*Element, 0, 2*T-1),
+			children: make([]*Node, 0, 2*T),
 			leaf:     true,
 		},
 		T: T,
 	}
 }
 
-func (tree *BTree) Insert(e *Element) {
+func (e *Element) Value() []byte {
+	return e.value
+}
+func (e *Element) Key() []byte {
+	return e.key
+}
+func (e *Element) Tombstone() byte {
+	return e.tombstone
+}
+func (e *Element) Timestamp() int64 {
+	return e.timestamp
+}
+func (e *Element) SetKey(key []byte) {
+	e.key = key
+}
+func (e *Element) SetValue(value []byte) {
+	e.value = value
+}
+func (e *Element) SetTimestamp(timestamp int64) {
+	e.timestamp = timestamp
+}
+func (e *Element) SetTombstone(tombstone byte) {
+	e.tombstone = tombstone
+}
+
+func (tree *BTree) search(key []byte, temp *Node) DataNode {
+	i := 0
+	for i < len(temp.keys) && bytes.Compare(key, temp.keys[i].key) == 1 {
+		i++
+	}
+	if i < len(temp.keys) && bytes.Compare(key, temp.keys[i].key) == 0 {
+		return temp.keys[i]
+	}
+	if temp.leaf {
+		return nil
+	}
+
+	return tree.search(key, temp.children[i])
+}
+
+func (tree *BTree) Find(key []byte) DataNode {
+	return tree.search(key, tree.root)
+}
+
+func (tree *BTree) Insert(key []byte, value []byte, timestamp int64, tombstone byte) {
 	r := tree.root
+
+	e := &Element{
+		key:       key,
+		value:     value,
+		timestamp: timestamp,
+		tombstone: tombstone,
+	}
+
+	x := tree.Find(e.key)
+
+	if x != nil {
+		x.SetValue(e.value)
+		x.SetTimestamp(e.timestamp)
+		x.SetTombstone(e.tombstone)
+		return
+	}
+
 	if len(tree.root.keys) == 2*tree.T-1 {
 		temp := &Node{
-			keys:     make([]*Element, 0),
-			children: make([]*Node, 0),
+			keys:     make([]*Element, 0, 2*tree.T-1),
+			children: make([]*Node, 0, 2*tree.T),
 			leaf:     false,
 		}
 		tree.root = temp
-		temp.children = append([]*Node{r}, temp.children...)
+		temp.children = append(temp.children, r)
 		tree.splitChild(temp, 0)
 		tree.insertNonFull(temp, e)
 	} else {
@@ -54,12 +115,7 @@ func (tree *BTree) Insert(e *Element) {
 func (tree *BTree) insertNonFull(x *Node, e *Element) {
 	i := len(x.keys) - 1
 	if x.leaf {
-		for (i >= 0) && (bytes.Compare(e.Key, x.keys[i].Key) == -1) {
-			if i+1 >= len(x.keys) {
-				x.keys = append(x.keys, x.keys[i])
-			} else {
-				x.keys[i+1] = x.keys[i]
-			}
+		for (i >= 0) && (bytes.Compare(e.key, x.keys[i].key) == -1) {
 			i--
 		}
 
@@ -67,13 +123,13 @@ func (tree *BTree) insertNonFull(x *Node, e *Element) {
 		copy(x.keys[i+2:], x.keys[i+1:])
 		x.keys[i+1] = e
 	} else {
-		for (i >= 0) && (bytes.Compare(e.Key, x.keys[i].Key) == -1) {
+		for (i >= 0) && (bytes.Compare(e.key, x.keys[i].key) == -1) {
 			i--
 		}
 		i++
 		if len(x.children[i].keys) == 2*tree.T-1 {
 			tree.splitChild(x, i)
-			if bytes.Compare(e.Key, x.keys[i].Key) == 1 {
+			if bytes.Compare(e.key, x.keys[i].key) == 1 {
 				i++
 			}
 			tree.insertNonFull(x.children[i], e)
@@ -87,25 +143,50 @@ func (tree *BTree) insertNonFull(x *Node, e *Element) {
 func (tree *BTree) splitChild(x *Node, i int) {
 	y := x.children[i]
 	z := &Node{
-		keys:     make([]*Element, tree.T-1),
-		children: make([]*Node, 0),
 		leaf:     y.leaf,
+		keys:     *new([]*Element),
+		children: *new([]*Node),
+	}
+
+	z.keys = append(z.keys, y.keys[tree.T:(2*tree.T)-1]...)
+
+	if !y.leaf {
+		z.children = append(z.children, y.children[tree.T:2*tree.T]...)
+		var temp []*Node
+		temp = append(temp, y.children[0:tree.T]...)
+		y.children = make([]*Node, 0)
+		y.children = append(y.children, temp...)
 	}
 
 	x.children = append(x.children[:i+1], append([]*Node{z}, x.children[i+1:]...)...)
 	x.keys = append(x.keys[:i], append([]*Element{y.keys[tree.T-1]}, x.keys[i:]...)...)
-	z.keys = y.keys[tree.T : (2*tree.T)-1]
+
 	y.keys = y.keys[0 : tree.T-1]
-	if !y.leaf {
-		z.children = y.children[tree.T : 2*tree.T]
-		y.children = y.children[0:tree.T]
+
+}
+
+func (tree *BTree) traverse(n *Node, num *int) {
+	for _, k := range n.keys {
+		if k.tombstone == 0 {
+			*num++
+		}
 	}
+
+	for i := 0; i < len(n.children); i++ {
+		if !n.leaf {
+			tree.traverse(n.children[i], num)
+		}
+	}
+}
+
+func (tree *BTree) Print() {
+	tree.PrintTree(tree.root, 0)
 }
 
 func (t *BTree) PrintTree(x *Node, l int) {
 	fmt.Printf("Level %d %d:", l, len(x.keys))
 	for _, i := range x.keys {
-		fmt.Print(string(i.Key), " ")
+		fmt.Print(string(i.value), " ")
 	}
 	fmt.Println()
 	l += 1
@@ -118,90 +199,46 @@ func (t *BTree) PrintTree(x *Node, l int) {
 	}
 }
 
-/*func main() {
-	stablo := CreateBTree(2)
+func (tree *BTree) Size() int {
+	num := 0
+	tree.traverse(tree.root, &num)
+	return num
+}
 
-	stablo.Insert(&Element{
-		Key:       []byte("2"),
-		Value:     []byte("2"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
+func (tree *BTree) Delete(key []byte) {
+	temp := tree.Find(key)
 
-	stablo.PrintTree(stablo.root, 0)
-	fmt.Print("\n")
-
-	stablo.Insert(&Element{
-		Key:       []byte("3"),
-		Value:     []byte("3"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("4"),
-		Value:     []byte("4"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("5"),
-		Value:     []byte("5"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("6"),
-		Value:     []byte("6"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("7"),
-		Value:     []byte("7"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("8"),
-		Value:     []byte("8"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("9"),
-		Value:     []byte("9"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
-
-	stablo.Insert(&Element{
-		Key:       []byte("10"),
-		Value:     []byte("10"),
-		Timestamp: 14,
-		Tombstone: 0,
-	})
-	fmt.Print("\n")
-	stablo.PrintTree(stablo.root, 0)
+	if temp != nil {
+		temp.SetTombstone(1)
+	}
 
 }
-*/
+
+func (tree *BTree) dataTraverse(n *Node, data *[]Element) {
+	if n.leaf {
+		for _, k := range n.keys {
+			if k.tombstone == 0 {
+				*data = append(*data, *k)
+			}
+		}
+	} else {
+		for i := 0; i < len(n.keys); i++ {
+			tree.dataTraverse(n.children[i], data)
+			if n.keys[i].tombstone == 0 {
+				*data = append(*data, *n.keys[i])
+			}
+		}
+		tree.dataTraverse(n.children[len(n.keys)], data)
+	}
+}
+
+func (tree *BTree) GetSortedData() []Element {
+	var data []Element
+
+	if tree.root == nil {
+		return data
+	}
+	tree.dataTraverse(tree.root, &data)
+
+	return data
+}
