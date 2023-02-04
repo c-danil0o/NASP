@@ -2,6 +2,7 @@ package memtable
 
 import (
 	config "github.com/c-danil0o/NASP/Config"
+	lsmt "github.com/c-danil0o/NASP/LSM"
 	sst "github.com/c-danil0o/NASP/SSTable"
 )
 
@@ -29,7 +30,9 @@ func Flush(mt *Memtable) error {
 	list := mt.data.GetSortedData()
 	//err := sst.Init(list, Generation)
 	err := sst.Init(list, Generation)
-	Generation++
+	lsmt.Active.InsertSST(int(Generation))
+	lsmt.Active.Serialize()
+	Generation = uint32(lsmt.Active.GetNextGeneration())
 	if err != nil {
 		return err
 	}

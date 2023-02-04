@@ -200,14 +200,14 @@ func testing() {
 func put() bool {
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
-	n, err := fmt.Scanf("%s", &key)
+	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return false
 	}
 
 	var val []byte
 	fmt.Print("Unesite vrijednost: ")
-	_, err = fmt.Scanf("%s", &val)
+	_, err = fmt.Scanf("%s\n", &val)
 	if err != nil {
 		return false
 	}

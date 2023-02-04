@@ -3,11 +3,13 @@ package hyperloglog
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/gob"
 	"hash/fnv"
 	"io"
 	"math"
 	"math/bits"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -97,6 +99,18 @@ func (hll *hyperLogLog) SerializeHLL(writer io.Writer) error {
 	}
 	_, err = writer.Write(buf.Bytes())
 	return err
+}
+
+func DeserializeHLL(file os.File) (*hyperLogLog, error) {
+	decoder := gob.NewDecoder(&file)
+	var hll = new(hyperLogLog)
+	_, err := file.Seek(0, 0)
+	err = decoder.Decode(hll)
+	if err != nil {
+		//fmt.Println("Doslo je do greske.")
+		return nil, err
+	}
+	return hll, err
 }
 
 //func main() {
