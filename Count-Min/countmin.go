@@ -3,6 +3,7 @@ package countmin
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
 
@@ -32,6 +33,79 @@ func createCMS(epsilon float64, delta float64) *CMS {
 		table: matrix,
 		hashs: hashs,
 		seeds: seeds,
+	}
+}
+
+var CMSs map[string]*CMS
+
+func CmsMeni() {
+	for {
+		fmt.Println("Select an option:")
+		fmt.Println("1. Create new CMS")
+		fmt.Println("2. Add element to CMS")
+		fmt.Println("3. Check for element in CMS")
+		fmt.Println("0. Izlaz")
+
+		var choice int
+		fmt.Scanln(&choice)
+
+		switch choice {
+		case 0:
+			fmt.Println("Izlaz iz CMS menija...")
+			os.Exit(0)
+		case 1:
+			var key string
+			fmt.Println("Unesite kljuc za CMS: ")
+			fmt.Scanln(&key)
+			_, ok := CMSs[key]
+			if ok {
+				fmt.Println("Vec postoji CMS sa tim kljucem.")
+			} else {
+				CMSs[key] = createCMS(0.1, 0.9) //DODATI PARAMETRE U CONFIG
+				fmt.Println("Uspesno ste kreirali CMS.")
+				//OVO SERIJALIZOVATI
+				//TODO
+			}
+		case 2:
+			var key string
+			fmt.Println("Unesite kljuc CMSa: ")
+			fmt.Scanln(&key)
+			//TODO
+			//DESERIJALIZUJ CMS KAD NADJES KLJUC
+			//stavi da ti je c taj deserijalizovan
+
+			c, ok := CMSs[key]
+
+			if !ok {
+				fmt.Println("Ne postoji CMS sa ovim kljucem.")
+			} else {
+				var val string
+				fmt.Println("Unesite vrednost koju zelite da ubacite u CMS: ")
+				fmt.Scanln(&val)
+
+				c.add([]byte(val))
+
+			}
+		case 3:
+			var key string
+			fmt.Println("Unesite kljuc CMSa: ")
+			fmt.Scanln(&key)
+			//TODO
+			//DESERIJALIZUJ CMS KAD NADJES KLJUC
+
+			c, ok := CMSs[key]
+
+			if !ok {
+				fmt.Println("Ne postoji CMS sa ovim kljucem.")
+			} else {
+				var val string
+				fmt.Println("Unesite vrednost koju zelite da proverite: ")
+				fmt.Scanln(&val)
+				fmt.Println("Pojavljuje se: " + string(c.get([]byte(val))) + " puta.")
+				//TODO
+				//PROVERITI SA CELAVIM STA SA REZULTATIMA
+			}
+		}
 	}
 }
 

@@ -34,6 +34,7 @@ func menu() {
 		fmt.Println("4. List")
 		fmt.Println("5. Range Scan")
 		fmt.Println("6. Input SSTable tests")
+		fmt.Println("7. CMS")
 		fmt.Println("0. Izlaz")
 		fmt.Print(">> ")
 
@@ -126,6 +127,8 @@ func menu() {
 			}
 		case 6:
 			testing()
+		case 7:
+
 		default:
 			fmt.Println("Neispravan unos. Pokusajte ponovo.")
 		}
