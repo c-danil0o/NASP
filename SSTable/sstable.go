@@ -61,9 +61,9 @@ func Init(nodes []container.DataNode, generation uint32) error {
 		tocFile, _ := os.OpenFile(sstable.TOCFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 		sstable.makeTOC(tocFile)
 		merkleBuffer := make([]Record, len(nodes))
-		size := make([]byte, 8)
-		binary.PutVarint(size, int64(len(nodes)))
-		dataFile.Write(size)
+		var bf bytes.Buffer
+		binary.Write(&bf, binary.BigEndian, int64(len(nodes)))
+		dataFile.Write(bf.Bytes())
 		defer dataFile.Close()
 		defer indexFile.Close()
 		defer summaryFile.Close()
@@ -353,6 +353,31 @@ func ReadTOC(filename string) (map[string]string, error) {
 
 	return result, nil
 }
+
+func RemoveFiles(toc map[string]string) error {
+	err := os.Remove(toc["data"])
+	if err != nil {
+		return err
+	}
+	err = os.Remove(toc["index"])
+	if err != nil {
+		return err
+	}
+	err = os.Remove(toc["filter"])
+	if err != nil {
+		return err
+	}
+	err = os.Remove(toc["metadata"])
+	if err != nil {
+		return err
+	}
+	err = os.Remove(toc["summary"])
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
 func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 	if config.SSTABLE_MULTIPLE_FILES == 1 { // sst1 i sst2 su TOC
 		sst1toc := "usertable-" + strconv.Itoa(sst1gen) + "-TOC.txt"
@@ -546,6 +571,22 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		indexFile.Sync()
 		summaryFile.Sync()
 		bloomFile.Sync()
+		err = RemoveFiles(file1)
+		if err != nil {
+			return err, 0
+		}
+		err = RemoveFiles(file2)
+		if err != nil {
+			return err, 0
+		}
+		err = os.Remove(sst1toc)
+		if err != nil {
+			return err, 0
+		}
+		err = os.Remove(sst2toc)
+		if err != nil {
+			return err, 0
+		}
 		return nil, count
 
 	} else { // sst1 i sst2 su usertable
@@ -767,6 +808,15 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		}
 		dataFile.Write(buf.Bytes())
 		dataFile.Sync()
+		err = os.Remove(sst1)
+		if err != nil {
+			return err, 0
+		}
+		err = os.Remove(sst2)
+		if err != nil {
+			return err, 0
+		}
+
 		return nil, count
 
 	}

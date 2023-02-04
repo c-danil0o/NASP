@@ -100,7 +100,7 @@ func menu() {
 		case 5:
 			// TODO: paginacija
 			resultsPerPage, viewPage := getPaginationInfo()
-			if res, err := rangeScan(); err == nil {
+			if res, err := rangeScan(); err != nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
 					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
