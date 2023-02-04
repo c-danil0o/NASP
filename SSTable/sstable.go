@@ -122,9 +122,11 @@ func Init(nodes []container.DataNode, generation uint32) error {
 		if err != nil {
 			return err
 		}
-		var buf bytes.Buffer
 		merkleRoot := GenerateMerkle(merkleBuffer)
-		err = SerializeMerkleNodes(metadataFile, &buf, merkleRoot.Root)
+		err = merkleRoot.SerializeMerkle(metadataFile)
+		if err != nil {
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -220,17 +222,16 @@ func InitSingle(nodes []container.DataNode, generation uint32) error {
 	if err != nil {
 		return err
 	}
-	var buf bytes.Buffer
+
 	merkleRoot := GenerateMerkle(merkleBuffer)
 	dataFile.Seek(head["metadata"], 0)
-	err = SerializeMerkleNodes(dataFile, &buf, merkleRoot.Root)
+	err = merkleRoot.SerializeMerkle(dataFile)
 	if err != nil {
 		return err
 	}
 
 	dataFile.Seek(0, 0)
-	buf.Reset()
-
+	var buf bytes.Buffer
 	err = binary.Write(&buf, binary.BigEndian, head["size"])
 	if err != nil {
 		return err
@@ -561,9 +562,8 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		if err != nil {
 			return err, 0
 		}
-		var buf bytes.Buffer
 		merkleRoot := GenerateMerkle(merkleBuffer)
-		err = SerializeMerkleNodes(metadataFile, &buf, merkleRoot.Root)
+		err = merkleRoot.SerializeMerkle(metadataFile)
 		if err != nil {
 			return err, 0
 		}
@@ -766,16 +766,16 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		if err != nil {
 			return err, 0
 		}
-		var buf bytes.Buffer
+
 		merkleRoot := GenerateMerkle(merkleBuffer)
 		dataFile.Seek(head["metadata"], 0)
-		err = SerializeMerkleNodes(dataFile, &buf, merkleRoot.Root)
+		err = merkleRoot.SerializeMerkle(dataFile)
 		if err != nil {
 			return err, 0
 		}
 
 		dataFile.Seek(0, 0)
-		buf.Reset()
+		var buf bytes.Buffer
 
 		err = binary.Write(&buf, binary.BigEndian, head["size"])
 		if err != nil {

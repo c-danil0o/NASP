@@ -2,7 +2,7 @@
 	"memtable_capacity": 9000,
     "memtable_threshold": 5,
 	"memtable_structure" : 0,
-	"sstable_multiple_files": 1,
+	"sstable_multiple_files": 0,
 	"sstable_segment_size": 3,
 	"lsm_depth": 4,
 	"cache_size": 100,
