@@ -37,10 +37,15 @@ func CreateMemtable(capacity int, threshold int, structure int) *Memtable {
 func (mt *Memtable) Add(key []byte, value []byte) error {
 	mt.data.Insert(key, value, time.Now().UnixNano(), 0)
 	return CheckThreshold()
-
 }
-func (mt *Memtable) Delete(key []byte) {
-	mt.data.Delete(key)
+
+func (mt *Memtable) AddDel(key []byte, value []byte) error {
+	mt.data.Insert(key, value, time.Now().UnixNano(), 1)
+	return CheckThreshold()
+}
+
+func (mt *Memtable) Delete(key []byte) bool {
+	return mt.data.Delete(key)
 }
 func (mt *Memtable) Print() {
 	mt.data.Print()

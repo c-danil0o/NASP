@@ -31,8 +31,13 @@ func Flush(mt *Memtable) error {
 	//err := sst.Init(list, Generation)
 	err := sst.Init(list, Generation)
 	lsmt.Active.InsertSST(int(Generation))
+<<<<<<< HEAD
 	lsmt.Active.Serialize()
 	Generation = uint32(lsmt.Active.GetNextGeneration())
+=======
+
+	Generation++
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	if err != nil {
 		return err
 	}

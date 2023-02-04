@@ -4,14 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
-	config "github.com/c-danil0o/NASP/Config"
-	container "github.com/c-danil0o/NASP/DataContainer"
+	"fmt"
 	"io"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	bloomfilter "github.com/c-danil0o/NASP/BloomFilter"
+	config "github.com/c-danil0o/NASP/Config"
+	container "github.com/c-danil0o/NASP/DataContainer"
 )
 
 type SSTable struct {
@@ -397,6 +399,9 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 
 		dataFile2, _ := os.OpenFile(file2["data"], os.O_RDONLY, 0600)
 		defer dataFile2.Close()
+
+		fmt.Println("\n\n", dataFile1.Name(), "-", dataFile2.Name(), "\n\n")
+
 		size1, err := ReadSize(dataFile1)
 		size2, err := ReadSize(dataFile2)
 		if err != nil {

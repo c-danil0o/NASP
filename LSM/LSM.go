@@ -1,6 +1,7 @@
 package LSM
 
 import (
+<<<<<<< HEAD
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -14,6 +15,19 @@ import (
 	"os"
 	"strconv"
 	"unsafe"
+=======
+	"fmt"
+	"math"
+	"os"
+	"strconv"
+
+	config "github.com/c-danil0o/NASP/Config"
+	container "github.com/c-danil0o/NASP/DataContainer"
+	"github.com/c-danil0o/NASP/Finder"
+	sst "github.com/c-danil0o/NASP/SSTable"
+	//memtable "github.com/c-danil0o/NASP/Memtable"
+	//memtable "github.com/c-danil0o/NASP/Memtable"
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 )
 
 type LSMTree struct {
@@ -60,6 +74,7 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			} else {
 				novaGen = SSTable + 1
 			}
+<<<<<<< HEAD
 
 			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
 			//os.removefiles(node.sstg)
@@ -68,6 +83,17 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 				return err
 			}
 
+=======
+			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			//removeFiles(int32(node.sstG))
+			//removeFiles(int32(SSTable))
+			fmt.Println(temp)
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 			if temp > config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
 				if node.next == nil {
 					node.next = &LSMNode{
@@ -77,7 +103,11 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 					}
 				}
 				node.sstG = -1
+<<<<<<< HEAD
 				return lsm.insertInNode(novaGen, node.next)
+=======
+				lsm.insertInNode(novaGen, node.next)
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 			} else {
 				node.sstG = novaGen
 			}
@@ -157,8 +187,12 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	return found, retVal, err
 }
 
+<<<<<<< HEAD
 func RemoveFiles(generation int32) error {
 
+=======
+func removeFiles(generation int32) error {
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	err := os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Data.db")
 	if err != nil {
 		return err
@@ -171,10 +205,20 @@ func RemoveFiles(generation int32) error {
 	if err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Filter.db")
 	if err != nil {
 		return err
 	}
+=======
+	fmt.Println("EALO")
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Filter.db")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println("LOL")
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt")
 	if err != nil {
 		return err
@@ -184,6 +228,7 @@ func RemoveFiles(generation int32) error {
 		return err
 	}
 	return nil
+<<<<<<< HEAD
 
 }
 
@@ -257,3 +302,73 @@ func (lsmt *LSMTree) GetNextGeneration() int {
 		return gen + 1
 	}
 }
+=======
+}
+
+//type LSMTree struct {
+//	rootSS        *memtable.Memtable
+//	maxNoOfLevels int // preuzimace se iz config fajla
+//	firstLVL      *LSMNode
+//	//lastLVL       *LSMNode
+//}
+//
+//type LSMNode struct {
+//	next *LSMNode
+//	//previous *LSMNode
+//	//root *LSMTree
+//	sst *SSTable.SSTable
+//	//depth      int
+//	//noOFLVLPT  *int
+//	//hasElement bool
+//	leaf bool
+//}
+//
+//func NewLSM(mt memtable.Memtable) LSMTree {
+//	return LSMTree{
+//		rootSS:        &mt,
+//		maxNoOfLevels: config.LSM_DEPTH,
+//		firstLVL:      nil,
+//		//lastLVL:       nil,
+//	}
+//}
+//
+//func (lsmt *LSMTree) InsertSST(sst *SSTable.SSTable) {
+//	if lsmt.firstLVL == nil { // ako ne postoji sledeci nivo
+//		lsmnod := LSMNode{
+//			next: nil,
+//			//previous:   nil,
+//			//root: lsmt,
+//			sst: sst,
+//			//hasElement: true,
+//			leaf: true,
+//		}
+//		lsmt.firstLVL = &lsmnod
+//		return
+//	} else if lsmt.firstLVL.sst == nil { // ako na sledecem nivou nema sstabela
+//		lsmt.firstLVL.sst = sst
+//	} else { // ako ima tabela na sledecem nivou onda dolazi do mergovanja
+//
+//	}
+//}
+//
+//func (lsmnod *LSMNode) MergeCaller(sst *SSTable.SSTable) {
+//	if lsmnod.sst != nil {
+//
+//		//ovde ide merdze funkcija da vraca sstable a prima dva sstable
+//		// mergeSSTables(lsmnod.sst, sst prosledjeno) SSTable
+//		// generacija povratne/mergovane tabele treba da bude veca od generacija
+//		// od prosledjenih sstabela +1
+//		mergedSST := sst
+//		if lsmnod.next == nil {
+//			lsmnod.next = &LSMNode{
+//				next: nil,
+//				//root: lsmt,
+//				sst:  mergedSST,
+//				leaf: true,
+//			}
+//		}
+//	} else {
+//
+//	}
+//}
+>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
