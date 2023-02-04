@@ -1,8 +1,10 @@
 package hyperloglog
 
 import (
+	"bytes"
 	"encoding/binary"
 	"hash/fnv"
+	"io"
 	"math"
 	"math/bits"
 	"math/rand"
@@ -84,6 +86,17 @@ func GetRandomData() (out [][]byte, intout []uint32) {
 		intout = append(intout, i)
 	}
 	return
+}
+
+func (hll *hyperLogLog) SerializeHLL(writer io.Writer) error {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.BigEndian, hll.b)
+	err = binary.Write(&buf, binary.BigEndian, hll.m)
+	for _, reg := range hll.registers {
+		err = binary.Write(&buf, binary.BigEndian, reg)
+	}
+	_, err = writer.Write(buf.Bytes())
+	return err
 }
 
 //func main() {

@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	lsmt "github.com/c-danil0o/NASP/LSM"
 	"os"
 	"strconv"
 
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
-	"github.com/c-danil0o/NASP/Finder"
 	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
 	wal "github.com/c-danil0o/NASP/WAL"
@@ -18,7 +18,14 @@ func errorMsg() {
 	fmt.Println("Doslo je do greske, molimo pokusajte ponovo.")
 }
 
-func menu() int {
+func menu() {
+	//config.ReadConfig("config.json")
+	//
+	//wal.Init()
+	//mt.Init()
+	//lru.Init()
+	//lsmt := LSM.NewLSMTree()
+
 	for {
 		fmt.Println("Select an option:")
 		fmt.Println("1. Put")
@@ -62,16 +69,24 @@ func menu() int {
 			}
 		case 4:
 			// TODO: paginacija
+			resultsPerPage, viewPage := getPaginationInfo()
 			if res, err := list(); err != nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := range res {
-						fmt.Println("\n" + strconv.Itoa(i+1) + ".rekord:")
+					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+						if int(i) >= len(res) {
+							if i == viewPage*resultsPerPage {
+								fmt.Println("Nema rezultata na ovoj stranici.")
+							}
+							break
+						}
+						fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
 						fmt.Printf("Key: %s\n", res[i].Key())
 						fmt.Printf("Value: %s\n", res[i].Value())
 						fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
 						fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
 					}
+
 					fmt.Println("\n---Kraj ispisa---\n")
 				} else {
 					fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
@@ -81,11 +96,18 @@ func menu() int {
 			}
 		case 5:
 			// TODO: paginacija
+			resultsPerPage, viewPage := getPaginationInfo()
 			if res, err := rangeScan(); err == nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := range res {
-						fmt.Println("\n" + strconv.Itoa(i+1) + ".rekord:")
+					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+						if int(i) >= len(res) {
+							if i == viewPage*resultsPerPage {
+								fmt.Println("Nema rezultata na ovoj stranici.")
+							}
+							break
+						}
+						fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
 						fmt.Printf("Key: %s\n", res[i].Key())
 						fmt.Printf("Value: %s\n", res[i].Value())
 						fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
@@ -109,6 +131,16 @@ func menu() int {
 		}
 		fmt.Println()
 	}
+}
+
+func getPaginationInfo() (uint32, uint32) {
+	var resultsPerPage uint32
+	var viewPage uint32
+	fmt.Println("Unesite koliko zelite rezultata da se prikaze po stranici : ")
+	fmt.Scanf("%u", &resultsPerPage)
+	fmt.Println("Unesite koju stranicu zelite da pogledate : ")
+	fmt.Scanf("%u", &viewPage)
+	return resultsPerPage, viewPage
 }
 
 func testing() {
@@ -185,7 +217,9 @@ func get() (container.DataNode, error) {
 	}
 
 	// If not found in memtable
-	found, retVal, err = Finder.FindKey([]byte(key))
+	// ovde mi prepravaljamo
+	//found, retVal, err = Finder.FindKey([]byte(key))
+	found, retVal, err = lsmt.Active.FindKey([]byte(key))
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -229,7 +263,11 @@ func list() ([]container.DataNode, error) {
 	if ret != nil {
 		retVal = append(retVal, ret...)
 	}
-	found, ret, err := Finder.PrefixScan([]byte(key))
+
+	// If not found in memtable
+	// ovde mi upadamo
+	//found, ret, err := Finder.PrefixScan([]byte(key))
+	found, ret, err := lsmt.Active.PrefixScan([]byte(key))
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -266,7 +304,9 @@ func rangeScan() ([]container.DataNode, error) {
 		retVal = append(retVal, ret...)
 	}
 
-	found, ret, err := Finder.RangeScan([]byte(minKey), []byte(maxKey))
+	//ovde mi upadamo
+	//found, ret, err := Finder.RangeScan([]byte(minKey), []byte(maxKey))
+	found, ret, err := lsmt.Active.RangeScan([]byte(minKey), []byte(maxKey))
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -283,5 +323,8 @@ func main() {
 	wal.Init()
 	mt.Init()
 	lru.Init()
+	lsmt.Init()
+	////lsmt := LSM.NewLSMTree()
+	//lsm.NewLSMTree()
 	menu()
 }

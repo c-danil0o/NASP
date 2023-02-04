@@ -20,7 +20,7 @@ type SSTable struct {
 	TOCFilename      string
 	SSTableFilename  string
 	metadataFilename string
-	generation       uint32
+	Generation       uint32
 	SegmentSize      uint
 	NumOfSegments    int
 	RecordSize       uint
@@ -37,7 +37,7 @@ func NewSSTable(dataSize uint64, generation uint32) *SSTable {
 		filterFilename:   "usertable-" + strconv.Itoa(int(generation)) + "-Filter.db",
 		TOCFilename:      "usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt",
 		metadataFilename: "usertable-" + strconv.Itoa(int(generation)) + "-Metadata.db",
-		generation:       generation,
+		Generation:       generation,
 		DataSize:         dataSize,
 		SegmentSize:      uint(config.SSTABLE_SEGMENT_SIZE),
 		SSTableFilename:  "usertable-" + strconv.Itoa(int(generation)) + "-.db",

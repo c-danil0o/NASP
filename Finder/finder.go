@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	container "github.com/c-danil0o/NASP/DataContainer"
@@ -36,9 +37,9 @@ func readTOC(filename string) (map[string]string, error) {
 	return data, nil
 
 }
-func FindKey(key []byte) (bool, container.DataNode, error) {
-	if config.SSTABLE_MULTIPLE_FILES == 1 {
-		filenames, err := readTOC("usertable-0-TOC.txt")
+func FindKey(key []byte, generation uint32) (bool, container.DataNode, error) { // ovde treba jos jedan parametar - generacija sst
+	if config.SSTABLE_MULTIPLE_FILES == 1 { // koja se posmatra
+		filenames, err := readTOC("usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt") //izmenimo da se menja filename
 		if err != nil {
 			return false, nil, err
 		}
@@ -111,10 +112,10 @@ func FindKey(key []byte) (bool, container.DataNode, error) {
 	}
 }
 
-func PrefixScan(key []byte) (bool, []container.DataNode, error) {
+func PrefixScan(key []byte, generation uint32) (bool, []container.DataNode, error) { // [] --> map[key] : datanode
 	var retVal []container.DataNode
 	if config.SSTABLE_MULTIPLE_FILES == 1 {
-		filenames, err := readTOC("usertable-0-TOC.txt")
+		filenames, err := readTOC("usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt")
 		if err != nil {
 			return false, nil, err
 		}
@@ -188,10 +189,10 @@ func PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	}
 }
 
-func RangeScan(minKey []byte, maxKey []byte) (bool, []container.DataNode, error) {
+func RangeScan(minKey []byte, maxKey []byte, generation uint32) (bool, []container.DataNode, error) {
 	var retVal []container.DataNode
 	if config.SSTABLE_MULTIPLE_FILES == 1 {
-		filenames, err := readTOC("usertable-0-TOC.txt")
+		filenames, err := readTOC("usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt")
 		if err != nil {
 			return false, nil, err
 		}
