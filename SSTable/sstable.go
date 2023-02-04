@@ -344,9 +344,7 @@ func ReadTOC(filename string) (map[string]string, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-
 	scanner.Split(bufio.ScanLines)
-
 	for scanner.Scan() {
 		temp := strings.Split(scanner.Text(), ":")
 		result[temp[0]] = temp[1]
@@ -361,7 +359,6 @@ func ReadTOC(filename string) (map[string]string, error) {
 
 func RemoveFiles(toc map[string]string) error {
 	err := os.Remove(toc["data"])
-	fmt.Println(toc["data"])
 	if err != nil {
 		return err
 	}
@@ -382,8 +379,8 @@ func RemoveFiles(toc map[string]string) error {
 		return err
 	}
 	return nil
-}
 
+}
 func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 	if config.SSTABLE_MULTIPLE_FILES == 1 { // sst1 i sst2 su TOC
 		sst1toc := "usertable-" + strconv.Itoa(sst1gen) + "-TOC.txt"
@@ -392,7 +389,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		if err != nil {
 			return err, 0
 		}
-
 		file2, err := ReadTOC(sst2toc)
 		if err != nil {
 			return err, 0
@@ -403,12 +399,14 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 
 		dataFile2, _ := os.OpenFile(file2["data"], os.O_RDONLY, 0600)
 		defer dataFile2.Close()
+
+		fmt.Println("\n\n", dataFile1.Name(), "-", dataFile2.Name(), "\n\n")
+
 		size1, err := ReadSize(dataFile1)
 		size2, err := ReadSize(dataFile2)
 		if err != nil {
 			return err, 0
 		}
-
 		dataSize := size1 + size2
 		sstable := NewSSTable(uint64(dataSize), uint32(generation))
 
@@ -452,7 +450,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 					if err := record1.Write(dataFile); err != nil { // zapisan u novi fajl
 						return err, 0
 					}
-
 					sstable.Bloom.Add(record1.Key())
 					if count%config.SSTABLE_SEGMENT_SIZE == 0 { // summary
 						summary.keys[count2] = record1.Key()
@@ -469,7 +466,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 						if err := record1.Write(dataFile); err != nil { // zapisan u novi fajl
 							return err, 0
 						}
-
 						sstable.Bloom.Add(record1.Key())
 						if count%config.SSTABLE_SEGMENT_SIZE == 0 { // summary
 							summary.keys[count2] = record1.Key()
@@ -487,7 +483,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 					if err := record2.Write(dataFile); err != nil { // zapisan u novi fajl
 						return err, 0
 					}
-
 					sstable.Bloom.Add(record2.Key())
 					if count%config.SSTABLE_SEGMENT_SIZE == 0 { // summary
 						summary.keys[count2] = record2.Key()
@@ -503,7 +498,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 						if err := record2.Write(dataFile); err != nil { // zapisan u novi fajl
 							return err, 0
 						}
-
 						sstable.Bloom.Add(record2.Key())
 						if count%config.SSTABLE_SEGMENT_SIZE == 0 { // summary
 							summary.keys[count2] = record2.Key()
@@ -546,7 +540,6 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 				}
 			}
 			if err := writeRecord.Write(dataFile); err != nil { // zapisan u novi fajl
-
 				return err, 0
 			}
 			sstable.Bloom.Add(writeRecord.Key())
@@ -564,33 +557,25 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		}
 		err = index.WriteIndex(indexFile)
 		if err != nil {
-
 			return err, 0
 		}
 		_, err = summary.WriteSummary(summaryFile, index.keys[index.indexSize()-1])
 		if err != nil {
-
 			return err, 0
 		}
 		_, err = sstable.Bloom.Serialize(bloomFile)
 		if err != nil {
-
 			return err, 0
 		}
 		merkleRoot := GenerateMerkle(merkleBuffer)
 		err = merkleRoot.SerializeMerkle(metadataFile)
 		if err != nil {
-
 			return err, 0
 		}
 		metadataFile.Sync()
 		indexFile.Sync()
 		summaryFile.Sync()
 		bloomFile.Sync()
-
-		dataFile1.Close()
-		dataFile2.Close()
-
 		err = RemoveFiles(file1)
 		if err != nil {
 			return err, 0
@@ -599,10 +584,8 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		if err != nil {
 			return err, 0
 		}
-
 		err = os.Remove(sst1toc)
 		if err != nil {
-
 			return err, 0
 		}
 		err = os.Remove(sst2toc)

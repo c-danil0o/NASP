@@ -182,7 +182,7 @@ func (s *SkipList) Insert(key []byte, value []byte, timestamp int64, tombstone b
 	s.size++
 }
 
-func (s *SkipList) Delete(key []byte) {
+func (s *SkipList) Delete(key []byte) bool {
 	update := make([]*SkipNode, len(s.head.forward))
 	copy(update, s.head.forward)
 	x := s.head
@@ -201,9 +201,11 @@ func (s *SkipList) Delete(key []byte) {
 			}
 			//update[i].forward[i] = x.forward[i]
 			update[i].forward[i].tombstone = 1
+			return true
 		}
 		//s.size--
 	}
+	return false
 }
 
 func (s *SkipList) DeleteF(key []byte) {

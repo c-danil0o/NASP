@@ -75,6 +75,7 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 						lvl:  node.lvl + 1,
 					}
 				}
+				node.sstG = -1
 				lsm.insertInNode(novaGen, node.next)
 			} else {
 				node.sstG = novaGen

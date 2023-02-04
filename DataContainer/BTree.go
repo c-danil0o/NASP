@@ -205,13 +205,14 @@ func (tree *BTree) Size() int {
 	return num
 }
 
-func (tree *BTree) Delete(key []byte) {
+func (tree *BTree) Delete(key []byte) bool {
 	temp := tree.Find(key)
 
 	if temp != nil {
 		temp.SetTombstone(1)
+		return true
 	}
-
+	return false
 }
 
 func (tree *BTree) dataTraverse(n *Node, data *[]Element) {

@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/c-danil0o/NASP/Finder"
 	lsmt "github.com/c-danil0o/NASP/LSM"
 
 	config "github.com/c-danil0o/NASP/Config"
@@ -54,15 +53,6 @@ func menu() {
 				fmt.Println("Uspjesno ste dodali zapis.")
 			}
 		case 2:
-			/*record, _ := get()
-			if record != nil {
-				fmt.Printf("Key: %s\n", record.Key())
-				fmt.Printf("Value: %s\n", record.Value())
-				fmt.Printf("Timestamp: %d\n", record.Timestamp())
-				fmt.Printf("Tombstone: %d\n", record.Tombstone())
-			} else {
-				fmt.Println("Trazeni rekord nije pronadjen.")
-			}*/
 			if record, err := get(); err == nil {
 				if record != nil {
 					fmt.Printf("Key: %s\n", record.Key())
@@ -80,9 +70,9 @@ func menu() {
 				fmt.Println("Uneseni rekord je uspjesno izbrisan.")
 			}
 		case 4:
-			// TODO: paginacija
 			resultsPerPage, viewPage := getPaginationInfo()
-			if res, err := list(); err != nil {
+			if res, err := list(); err == nil {
+				fmt.Println(res)
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
 					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
@@ -99,7 +89,7 @@ func menu() {
 						fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
 					}
 
-					fmt.Println("\n---Kraj ispisa---\n")
+					fmt.Print("\n---Kraj ispisa---\n\n")
 				} else {
 					fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
 				}
@@ -107,9 +97,8 @@ func menu() {
 				errorMsg()
 			}
 		case 5:
-			// TODO: paginacija
 			resultsPerPage, viewPage := getPaginationInfo()
-			if res, err := rangeScan(); err != nil {
+			if res, err := rangeScan(); err == nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
 					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
@@ -125,7 +114,7 @@ func menu() {
 						fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
 						fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
 					}
-					fmt.Println("\n---Kraj ispisa---\n")
+					fmt.Print("\n---Kraj ispisa---\n\n")
 				} else {
 					fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
 				}
@@ -150,7 +139,7 @@ func menu() {
 func getPaginationInfo() (uint32, uint32) {
 	var resultsPerPage int
 	var viewPage int
-	fmt.Println("Unesite koliko zelite rezultata da se prikaze po stranici : ")
+	fmt.Println("\nUnesite koliko zelite rezultata da se prikaze po stranici : ")
 	fmt.Scanf("%d\n", &resultsPerPage)
 	fmt.Println("Unesite koju stranicu zelite da pogledate : ")
 	fmt.Scanf("%d\n", &viewPage)
@@ -158,7 +147,7 @@ func getPaginationInfo() (uint32, uint32) {
 }
 
 func testing() {
-	if err := mt.Active.Add([]byte("f"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("aaaf"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	if err := mt.Active.Add([]byte("b"), []byte("val")); err != nil {
@@ -170,46 +159,43 @@ func testing() {
 	if err := mt.Active.Add([]byte("g"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("d"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("aad"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 
-	if err := mt.Active.Add([]byte("a"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("aaa"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	if err := mt.Active.Add([]byte("c"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
+	// if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
 
-	if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
+	// if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
 	fmt.Println("\nTest cases put successfully")
-
-	//SSTable.Merge(0, 1, 2)
-
-	fmt.Println(Finder.FindKey([]byte("z"), 2))
+	// fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
 
 func put() bool {
@@ -240,6 +226,7 @@ func put() bool {
 }
 
 func get() (container.DataNode, error) {
+	// TODO: provjeriti treba li vracati tomstone == 1 element
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
 	n, err := fmt.Scanf("%s\n", &key)
@@ -260,8 +247,6 @@ func get() (container.DataNode, error) {
 	}
 
 	// If not found in memtable
-	// ovde mi prepravaljamo
-	//found, retVal, err = Finder.FindKey([]byte(key))
 	found, retVal, err = lsmt.Active.FindKey([]byte(key))
 	if err != nil {
 		fmt.Println(err)
@@ -281,7 +266,12 @@ func delete() bool {
 				errorMsg()
 				return false
 			}
-			mt.Active.Delete(record.Key())
+			if mt.Active.Delete(record.Key()) == false {
+				if err := mt.Active.AddDel(record.Key(), record.Value()); err != nil {
+					fmt.Println(err)
+					return false
+				}
+			}
 			return true
 		} else {
 			fmt.Println("Trazeni rekord ne postoji.")
@@ -311,6 +301,7 @@ func list() ([]container.DataNode, error) {
 	// ovde mi upadamo
 	//found, ret, err := Finder.PrefixScan([]byte(key))
 	found, ret, err := lsmt.Active.PrefixScan([]byte(key))
+	fmt.Println("Ret: ", ret)
 	if err != nil {
 		return nil, err
 	} else if !found {

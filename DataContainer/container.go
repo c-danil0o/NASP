@@ -16,7 +16,7 @@ type Container interface {
 	Find(key []byte) DataNode
 	PrefixScan(key []byte) []DataNode
 	RangeScan(minKey []byte, maxKey []byte) []DataNode
-	Delete(key []byte)
+	Delete(key []byte) bool
 	Size() int
 	GetSortedData() []DataNode
 	Print()
