@@ -169,31 +169,31 @@ func testing() {
 	if err := mt.Active.Add([]byte("c"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	// if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
+	if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 
-	// if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
+	if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("\nTest cases put successfully")
 	// fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
@@ -364,10 +364,11 @@ func rangeScan() ([]container.DataNode, error) {
 func main() {
 	config.ReadConfig("config.json")
 
+	lsmt.Init()
 	wal.Init()
 	mt.Init()
 	lru.Init()
-	lsmt.Init()
+
 	////lsmt := LSM.NewLSMTree()
 	//lsm.NewLSMTree()
 	menu()

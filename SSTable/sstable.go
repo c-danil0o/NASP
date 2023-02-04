@@ -360,23 +360,23 @@ func ReadTOC(filename string) (map[string]string, error) {
 func RemoveFiles(toc map[string]string) error {
 	err := os.Remove(toc["data"])
 	if err != nil {
-		return err
+		//return err
 	}
 	err = os.Remove(toc["index"])
 	if err != nil {
-		return err
+		//return err
 	}
 	err = os.Remove(toc["filter"])
 	if err != nil {
-		return err
+		//return err
 	}
 	err = os.Remove(toc["metadata"])
 	if err != nil {
-		return err
+		//return err
 	}
 	err = os.Remove(toc["summary"])
 	if err != nil {
-		return err
+		//return err
 	}
 	return nil
 
@@ -576,21 +576,25 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		indexFile.Sync()
 		summaryFile.Sync()
 		bloomFile.Sync()
+
+		dataFile1.Close()
+		dataFile2.Close()
+
 		err = RemoveFiles(file1)
 		if err != nil {
-			return err, 0
+			//return err, 0
 		}
 		err = RemoveFiles(file2)
 		if err != nil {
-			return err, 0
+			//return err, 0
 		}
 		err = os.Remove(sst1toc)
 		if err != nil {
-			return err, 0
+			//return err, 0
 		}
 		err = os.Remove(sst2toc)
 		if err != nil {
-			return err, 0
+			//return err, 0
 		}
 		return nil, count
 

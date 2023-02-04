@@ -67,10 +67,10 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			//os.removefiles(node.sstg)
 			//os.removefiles(sstable)
 			if err != nil {
-				return err
+				//return err
 			}
 
-			if temp > config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
+			if temp >= config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
 				if node.next == nil {
 					node.next = &LSMNode{
 						sstG: -1,
@@ -190,19 +190,21 @@ func RemoveFiles(generation int32) error {
 }
 
 func (lsmt *LSMTree) Serialize() error {
-	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	defer lsmtreeFile.Close()
 	if err != nil {
 		return err
 	}
 	var buf bytes.Buffer
 	current := lsmt.nodes
 	for current != nil {
-		fmt.Println(current.sstG)
-		err = binary.Write(&buf, binary.BigEndian, current.sstG)
-		err = binary.Write(&buf, binary.BigEndian, current.lvl)
+		err = binary.Write(&buf, binary.BigEndian, int64(current.sstG))
+		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl))
 		current = current.next
 	}
 	_, err = lsmtreeFile.Write(buf.Bytes())
+	lsmtreeFile.Sync()
+
 	return err
 }
 
@@ -212,11 +214,12 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 	if err != nil {
 		return err
 	}
+	defer lsmtreeFile.Close()
 
-	//lsmt.nodes = &LSMNode{sstG: -1, lvl: 0}
+	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0}
 	current := lsmt.nodes
 
-	var isize int = -1
+	var isize int64 = -1
 
 	lsmtreeFile.Seek(0, 0)
 	mybytes := make([]byte, unsafe.Sizeof(isize))
@@ -224,6 +227,7 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 
 		_, err = lsmtreeFile.Read(mybytes)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			fmt.Println("EALO")
 			break
 		}
 		buf := bytes.NewBuffer(mybytes)
@@ -234,6 +238,7 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 
 		_, err = lsmtreeFile.Read(mybytes)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
+
 			break
 		}
 		buf = bytes.NewBuffer(mybytes)
