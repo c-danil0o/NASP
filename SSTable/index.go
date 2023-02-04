@@ -28,10 +28,17 @@ func NewIndex(sstable *SSTable) *Index {
 		size:      uint(sstable.DataSize),
 	}
 }
+func (index *Index) indexSize() uint {
+	var count uint = 0
+	for int(count) < len(index.keys) && len(index.keys[count]) != 0 {
+		count++
+	}
+	return count
+}
 
 func (index *Index) WriteIndex(writer io.Writer) error {
 	var buf bytes.Buffer
-	for i := 0; i < int(index.size); i++ {
+	for i := 0; i < int(index.indexSize()); i++ {
 		err := binary.Write(&buf, binary.BigEndian, uint64(len(index.keys[i])))
 		if err != nil {
 			return err

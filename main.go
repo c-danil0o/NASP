@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/c-danil0o/NASP/Finder"
 	lsmt "github.com/c-danil0o/NASP/LSM"
+	"github.com/c-danil0o/NASP/SSTable"
 	"os"
 	"strconv"
 
@@ -147,29 +149,52 @@ func getPaginationInfo() (uint32, uint32) {
 }
 
 func testing() {
-	if err := mt.Active.Add([]byte("data1"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("f"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data5"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("b"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data3"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("h"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data18"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("g"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data19"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("d"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 
-	if err := mt.Active.Add([]byte("data6"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("a"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data7"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("c"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println("\nTest cases put successfully")
+
+	SSTable.Merge(0, 1, 2)
+
+	fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
 
 func put() bool {

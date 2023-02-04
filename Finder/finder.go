@@ -78,7 +78,7 @@ func FindKey(key []byte, generation uint32) (bool, container.DataNode, error) { 
 		return false, nil, nil
 	} else {
 
-		dataFile, _ := os.OpenFile("usertable-0-.db", os.O_RDONLY, 0600)
+		dataFile, _ := os.OpenFile("usertable-"+strconv.Itoa(int(generation))+"-.db", os.O_RDONLY, 0600)
 		head, _ := SSTable.ReadHead(dataFile)
 
 		bloom, _ := bloomfilter.Read(dataFile, head["filter"])

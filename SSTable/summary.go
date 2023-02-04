@@ -9,11 +9,11 @@ import (
 )
 
 type Summary struct {
-	keys        [][]byte
-	positions   []uint64
-	first       []byte
-	last        []byte
-	summarySize int32
+	keys      [][]byte
+	positions []uint64
+	first     []byte
+	last      []byte
+	size      int32
 }
 
 func NewSummary(summarySize int32) *Summary {
@@ -23,12 +23,18 @@ func NewSummary(summarySize int32) *Summary {
 	}
 	positions := make([]uint64, summarySize)
 	return &Summary{
-		keys:        keys,
-		positions:   positions,
-		summarySize: summarySize,
+		keys:      keys,
+		positions: positions,
+		size:      summarySize,
 	}
 }
-
+func (summary *Summary) summarySize() int32 {
+	var count int32 = 0
+	for int(count) < len(summary.keys) && len(summary.keys[count]) != 0 {
+		count++
+	}
+	return count
+}
 func (summary *Summary) WriteSummary(writer io.Writer, last []byte) (int64, error) {
 	var size int64
 	var buf bytes.Buffer
@@ -53,7 +59,7 @@ func (summary *Summary) WriteSummary(writer io.Writer, last []byte) (int64, erro
 	if err != nil {
 		return 0, err
 	}
-	err = binary.Write(&buf, binary.BigEndian, summary.summarySize)
+	err = binary.Write(&buf, binary.BigEndian, summary.summarySize())
 	if err != nil {
 		return 0, err
 	}
@@ -64,7 +70,7 @@ func (summary *Summary) WriteSummary(writer io.Writer, last []byte) (int64, erro
 	size = int64(len(buf.Bytes()))
 	buf.Reset()
 
-	for i := 0; i < int(summary.summarySize); i++ {
+	for i := 0; i < int(summary.summarySize()); i++ {
 		err := binary.Write(&buf, binary.BigEndian, uint64(len(summary.keys[i])))
 		err = binary.Write(&buf, binary.BigEndian, summary.keys[i])
 		if err != nil {
@@ -129,12 +135,12 @@ func ReadSummary(file *os.File, offset int64) (*Summary, error) {
 		return nil, err
 	}
 
-	if err := binary.Read(file, binary.BigEndian, &summ.summarySize); err != nil {
+	if err := binary.Read(file, binary.BigEndian, &summ.size); err != nil {
 		return nil, err
 	}
-	summ.keys = make([][]byte, summ.summarySize)
-	summ.positions = make([]uint64, summ.summarySize)
-	for i := 0; i < int(summ.summarySize); i++ {
+	summ.keys = make([][]byte, summ.size)
+	summ.positions = make([]uint64, summ.size)
+	for i := 0; i < int(summ.size); i++ {
 		var keysize uint64
 		if err := binary.Read(file, binary.BigEndian, &keysize); err != nil {
 			return nil, err
@@ -154,10 +160,10 @@ func ReadSummary(file *os.File, offset int64) (*Summary, error) {
 }
 
 func (summary *Summary) FindKey(key []byte) (int64, error) {
-	for i := 0; i < int(summary.summarySize); i++ {
+	for i := 0; i < int(summary.size); i++ {
 		if bytes.Compare(summary.keys[i], key) == 0 {
 			return int64(summary.positions[i]), nil
-		} else if i == int(summary.summarySize)-1 {
+		} else if i == int(summary.size)-1 {
 			return int64(summary.positions[i]), nil
 		} else if bytes.Compare(summary.keys[i], key) == -1 && bytes.Compare(summary.keys[i+1], key) == 1 {
 			return int64(summary.positions[i]), nil
@@ -168,7 +174,7 @@ func (summary *Summary) FindKey(key []byte) (int64, error) {
 
 func (summary *Summary) FindPrefixKeys(key []byte) []int64 {
 	var retVal []int64
-	for i := 0; i < int(summary.summarySize); i++ {
+	for i := 0; i < int(summary.size); i++ {
 		if bytes.HasPrefix(summary.keys[i], key) {
 			retVal = append(retVal, int64(summary.positions[i]))
 		}
@@ -178,7 +184,7 @@ func (summary *Summary) FindPrefixKeys(key []byte) []int64 {
 
 func (summary *Summary) FindRangeKeys(min []byte, max []byte) []int64 {
 	var retVal []int64
-	for i := 0; i < int(summary.summarySize); i++ {
+	for i := 0; i < int(summary.size); i++ {
 		if bytes.Compare(max, summary.keys[i]) >= 0 && bytes.Compare(min, summary.keys[i]) <= 0 {
 			retVal = append(retVal, int64(summary.positions[i]))
 		}
@@ -187,7 +193,7 @@ func (summary *Summary) FindRangeKeys(min []byte, max []byte) []int64 {
 }
 
 func (summary *Summary) UpdateOffset(offset uint64) {
-	for i := 0; i < int(summary.summarySize); i++ {
+	for i := 0; i < int(summary.summarySize()); i++ {
 		summary.positions[i] += offset
 	}
 }

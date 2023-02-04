@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"os"
 	"time"
 )
 
 // Record implements DataNode interface
 type Record struct {
 	CRC       uint32
-	timestamp [16]byte
+	timestamp int64
 	tombstone byte
 	KeySize   uint64
 	ValueSize uint64
@@ -30,7 +31,8 @@ func (rec *Record) Tombstone() byte {
 	return rec.tombstone
 }
 func (rec *Record) Timestamp() int64 {
-	return int64(binary.BigEndian.Uint64(rec.timestamp[:]))
+	//return int64(binary.BigEndian.Uint64(rec.timestamp[:]))
+	return rec.timestamp
 }
 func (rec *Record) SetKey(key []byte) {
 	rec.key = key
@@ -39,7 +41,8 @@ func (rec *Record) SetValue(value []byte) {
 	rec.value = value
 }
 func (rec *Record) SetTimestamp(timestamp int64) {
-	binary.PutVarint(rec.timestamp[:], timestamp)
+	//binary.PutVarint(rec.timestamp[:], timestamp)
+	rec.timestamp = timestamp
 }
 func (rec *Record) SetTombstone(tombstone byte) {
 	rec.tombstone = tombstone
@@ -48,7 +51,7 @@ func (rec *Record) SetTombstone(tombstone byte) {
 func (rec *Record) RecordSize() uint64 {
 	var sum uint64
 	sum += 4             // CRC
-	sum += 16            // Timestamp
+	sum += 8             // Timestamp
 	sum += 1             // Tombstone
 	sum += 8 + 8         // KeySize + ValueSize
 	sum += rec.KeySize   // Key
@@ -61,8 +64,8 @@ func (rec *Record) Write(writer io.Writer) error {
 	rec.CRC = crc32.ChecksumIEEE(rec.key)
 
 	// Getting current time
-	timestamp := time.Now().UnixNano()
-	binary.PutVarint(rec.timestamp[:], timestamp)
+	rec.timestamp = time.Now().UnixNano()
+	//binary.PutVarint(rec.timestamp[:], timestamp)
 
 	// Getting length of key
 	keyLen := uint64(len(rec.key))
@@ -93,6 +96,7 @@ func (rec *Record) Read(reader io.Reader) error {
 	if err := binary.Read(reader, binary.BigEndian, &rec.CRC); err != nil {
 		return err
 	}
+
 	if err := binary.Read(reader, binary.BigEndian, &rec.timestamp); err != nil {
 		return err
 	}
@@ -119,4 +123,38 @@ func (rec *Record) Read(reader io.Reader) error {
 		return fmt.Errorf("verification")
 	}
 	return nil
+}
+
+func (rec *Record) ReadNext(reader io.Reader) bool {
+	err := rec.Read(reader)
+	if err != nil {
+		return false
+	}
+	for rec.Tombstone() == 1 {
+		err = rec.Read(reader)
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (rec *Record) ReadNextSingle(reader *os.File, offset int64) bool {
+	off, err := reader.Seek(0, 1)
+	if off == offset {
+		return false
+	}
+	reader.Seek(off, 0)
+
+	err = rec.Read(reader)
+	if err != nil {
+		return false
+	}
+	for rec.Tombstone() == 1 {
+		err = rec.Read(reader)
+		if err != nil {
+			return false
+		}
+	}
+	return true
 }
