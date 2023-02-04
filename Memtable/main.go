@@ -30,14 +30,10 @@ func Flush(mt *Memtable) error {
 	list := mt.data.GetSortedData()
 	//err := sst.Init(list, Generation)
 	err := sst.Init(list, Generation)
-	lsmt.Active.InsertSST(int(Generation))
-<<<<<<< HEAD
-	lsmt.Active.Serialize()
+	err = lsmt.Active.InsertSST(int(Generation))
+	err = lsmt.Active.Serialize()
 	Generation = uint32(lsmt.Active.GetNextGeneration())
-=======
-
-	Generation++
->>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
+	//Generation++
 	if err != nil {
 		return err
 	}

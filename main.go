@@ -200,22 +200,24 @@ func testing() {
 
 func put() bool {
 	var key string
-<<<<<<< HEAD
-	fmt.Print("\nUnesite kljuc: ")
-=======
 	fmt.Print("\nUnesite kljuc:")
->>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
+	//	<<<<<<< HEAD
+	//	fmt.Print("\nUnesite kljuc: ")
+	//=======
+	//	fmt.Print("\nUnesite kljuc:")
+	//>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return false
 	}
 
 	var val []byte
-<<<<<<< HEAD
 	fmt.Print("Unesite vrijednost: ")
-=======
-	fmt.Print("Unesite vrijednost:")
->>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
+	//<<<<<<< HEAD
+	//	fmt.Print("Unesite vrijednost: ")
+	//=======
+	//	fmt.Print("Unesite vrijednost:")
+	//>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	_, err = fmt.Scanf("%s\n", &val)
 	if err != nil {
 		return false
