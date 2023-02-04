@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/c-danil0o/NASP/Finder"
-	lsmt "github.com/c-danil0o/NASP/LSM"
-	"github.com/c-danil0o/NASP/SSTable"
 	"os"
 	"strconv"
+
+	"github.com/c-danil0o/NASP/Finder"
+	lsmt "github.com/c-danil0o/NASP/LSM"
 
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
@@ -54,7 +54,16 @@ func menu() {
 				fmt.Println("Uspjesno ste dodali zapis.")
 			}
 		case 2:
-			if record, err := get(); err != nil {
+			/*record, _ := get()
+			if record != nil {
+				fmt.Printf("Key: %s\n", record.Key())
+				fmt.Printf("Value: %s\n", record.Value())
+				fmt.Printf("Timestamp: %d\n", record.Timestamp())
+				fmt.Printf("Tombstone: %d\n", record.Tombstone())
+			} else {
+				fmt.Println("Trazeni rekord nije pronadjen.")
+			}*/
+			if record, err := get(); err == nil {
 				if record != nil {
 					fmt.Printf("Key: %s\n", record.Key())
 					fmt.Printf("Value: %s\n", record.Value())
@@ -139,13 +148,13 @@ func menu() {
 }
 
 func getPaginationInfo() (uint32, uint32) {
-	var resultsPerPage uint32
-	var viewPage uint32
+	var resultsPerPage int
+	var viewPage int
 	fmt.Println("Unesite koliko zelite rezultata da se prikaze po stranici : ")
-	fmt.Scanf("%u", &resultsPerPage)
+	fmt.Scanf("%d\n", &resultsPerPage)
 	fmt.Println("Unesite koju stranicu zelite da pogledate : ")
-	fmt.Scanf("%u", &viewPage)
-	return resultsPerPage, viewPage
+	fmt.Scanf("%d\n", &viewPage)
+	return uint32(resultsPerPage), uint32(viewPage)
 }
 
 func testing() {
@@ -190,24 +199,30 @@ func testing() {
 	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
+	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("\nTest cases put successfully")
 
-	SSTable.Merge(0, 1, 2)
+	//SSTable.Merge(0, 1, 2)
 
 	fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
 
 func put() bool {
 	var key string
-	fmt.Print("\nUnesite kljuc: ")
-	n, err := fmt.Scanf("%s", &key)
+	fmt.Print("\nUnesite kljuc:")
+	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return false
 	}
 
 	var val []byte
-	fmt.Print("Unesite vrijednost: ")
-	_, err = fmt.Scanf("%s", &val)
+	fmt.Print("Unesite vrijednost:")
+	_, err = fmt.Scanf("%s\n", &val)
 	if err != nil {
 		return false
 	}
@@ -227,7 +242,7 @@ func put() bool {
 func get() (container.DataNode, error) {
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
-	n, err := fmt.Scanf("%s", &key)
+	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return nil, err
 	}
@@ -260,7 +275,7 @@ func get() (container.DataNode, error) {
 }
 
 func delete() bool {
-	if record, err := get(); err != nil {
+	if record, err := get(); err == nil {
 		if record != nil {
 			if err = wal.Active.WriteRecord(wal.LogRecord{Tombstone: 1, Key: record.Key(), Value: record.Value()}); err != nil {
 				errorMsg()
@@ -280,7 +295,7 @@ func delete() bool {
 func list() ([]container.DataNode, error) {
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
-	n, err := fmt.Scanf("%s", &key)
+	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return nil, err
 	}
@@ -309,14 +324,14 @@ func list() ([]container.DataNode, error) {
 func rangeScan() ([]container.DataNode, error) {
 	var minKey string
 	fmt.Print("\nMinimalni kljuc: ")
-	n, err := fmt.Scanf("%s", &minKey)
+	n, err := fmt.Scanf("%s\n", &minKey)
 	if err != nil || n != 1 {
 		return nil, err
 	}
 
 	var maxKey string
 	fmt.Print("Maksimalni kljuc: ")
-	n, err = fmt.Scanf("%s", &maxKey)
+	n, err = fmt.Scanf("%s\n", &maxKey)
 	if err != nil || n != 1 {
 		return nil, err
 	}

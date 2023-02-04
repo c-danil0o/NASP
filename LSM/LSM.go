@@ -3,6 +3,8 @@ package LSM
 import (
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
@@ -56,13 +58,15 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			} else {
 				novaGen = SSTable + 1
 			}
-
 			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
-
 			if err != nil {
+				fmt.Println(err)
 				return err
 			}
 
+			//removeFiles(int32(node.sstG))
+			//removeFiles(int32(SSTable))
+			fmt.Println(temp)
 			if temp > config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
 				if node.next == nil {
 					node.next = &LSMNode{
@@ -149,6 +153,37 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 		retVal = append(retVal, k)
 	}
 	return found, retVal, err
+}
+
+func removeFiles(generation int32) error {
+	err := os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Data.db")
+	if err != nil {
+		return err
+	}
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Index.db")
+	if err != nil {
+		return err
+	}
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Summary.db")
+	if err != nil {
+		return err
+	}
+	fmt.Println("EALO")
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Filter.db")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println("LOL")
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-TOC.txt")
+	if err != nil {
+		return err
+	}
+	err = os.Remove("usertable-" + strconv.Itoa(int(generation)) + "-Metadata.txt")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //type LSMTree struct {
