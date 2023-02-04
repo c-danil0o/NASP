@@ -1,21 +1,25 @@
 package LSM
 
 import (
+	"fmt"
+	"math"
+
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
 	"github.com/c-danil0o/NASP/Finder"
-	memtable "github.com/c-danil0o/NASP/Memtable"
-	"github.com/c-danil0o/NASP/SSTable"
+	sst "github.com/c-danil0o/NASP/SSTable"
+	//memtable "github.com/c-danil0o/NASP/Memtable"
+	//memtable "github.com/c-danil0o/NASP/Memtable"
 )
 
 type LSMTree struct {
-	memTable memtable.Memtable
-	max      int
-	nodes    *LSMNode
+	//memTable memtable.Memtable
+	max   int
+	nodes *LSMNode
 }
 
 type LSMNode struct {
-	sst  *SSTable.SSTable
+	sstG int
 	next *LSMNode
 	lvl  int
 }
@@ -32,36 +36,53 @@ func NewLSMTree() *LSMTree {
 		//memTable: mem,
 		max: config.LSM_DEPTH,
 		nodes: &LSMNode{
-			sst:  nil,
+			sstG: -1,
 			next: nil,
 			lvl:  1,
 		},
 	}
 }
 
-func (lsm *LSMTree) insertInNode(SSTable *SSTable.SSTable, node *LSMNode) {
-	if node.sst == nil {
-		node.sst = SSTable
+func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
+	if node.sstG == -1 {
+		node.sstG = SSTable
 	} else {
 		if node.lvl == lsm.max {
-			//error
+			fmt.Println("Popunjen je max level LSMa.")
 		} else {
-			if node.next == nil {
-				node.next = &LSMNode{
-					//sst:  merge(node.sst, SSTable),
-					next: nil,
-					lvl:  node.lvl + 1,
-				}
-				node.sst = nil
+			var novaGen int
+			if node.sstG > SSTable {
+				novaGen = node.sstG + 1
 			} else {
-				lsm.insertInNode(SSTable, node.next)
+				novaGen = SSTable + 1
+			}
+
+			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
+
+			if err != nil {
+				return err
+			}
+
+			if temp > config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
+				if node.next == nil {
+					node.next = &LSMNode{
+						sstG: -1,
+						next: nil,
+						lvl:  node.lvl + 1,
+					}
+				}
+				lsm.insertInNode(novaGen, node.next)
+			} else {
+				node.sstG = novaGen
 			}
 		}
 	}
+
+	return nil
 }
 
-func (lsm *LSMTree) InsertSST(sst *SSTable.SSTable) {
-	lsm.insertInNode(sst, lsm.nodes)
+func (lsm *LSMTree) InsertSST(sst int) error {
+	return lsm.insertInNode(sst, lsm.nodes)
 }
 
 func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
@@ -70,13 +91,13 @@ func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
 	var retVal container.DataNode
 	current := lsm.nodes
 	for current.next != nil {
-		found, retVal, err = Finder.FindKey(key, current.sst.Generation)
+		found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 		if found {
 			return found, retVal, err
 		}
 		current = current.next
 	}
-	found, retVal, err = Finder.FindKey(key, current.sst.Generation)
+	found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 	return found, retVal, err
 }
 
@@ -88,7 +109,7 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	current := lsm.nodes
 	var foundVals map[string]container.DataNode
 	for current != nil {
-		found, tempRetVal, err = Finder.PrefixScan(key, current.sst.Generation)
+		found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
 		if found {
 			for _, v := range tempRetVal {
 				_, ok := foundVals[string(v.Key())]
@@ -113,7 +134,7 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	current := lsm.nodes
 	var foundVals map[string]container.DataNode
 	for current != nil {
-		found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, current.sst.Generation)
+		found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
 		if found {
 			for _, v := range tempRetVal {
 				_, ok := foundVals[string(v.Key())]
