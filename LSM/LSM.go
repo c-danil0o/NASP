@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	config "github.com/c-danil0o/NASP/Config"
-	container "github.com/c-danil0o/NASP/DataContainer"
-	"github.com/c-danil0o/NASP/Finder"
-	memtable "github.com/c-danil0o/NASP/Memtable"
-	sst "github.com/c-danil0o/NASP/SSTable"
 	"io"
 	"math"
 	"os"
 	"strconv"
 	"unsafe"
+
+	config "github.com/c-danil0o/NASP/Config"
+	container "github.com/c-danil0o/NASP/DataContainer"
+	"github.com/c-danil0o/NASP/Finder"
+
+	//memtable "github.com/c-danil0o/NASP/Memtable"
+	sst "github.com/c-danil0o/NASP/SSTable"
 )
 
 type LSMTree struct {
@@ -32,7 +34,7 @@ var Active LSMTree
 func Init() {
 	Active = *NewLSMTree()
 	Active.DeserializeLSMT()
-	memtable.Generation = uint32(Active.GetNextGeneration())
+	//memtable.Generation = uint32(Active.GetNextGeneration())
 }
 
 // mem memtable.Memtable
@@ -195,6 +197,7 @@ func (lsmt *LSMTree) Serialize() error {
 	var buf bytes.Buffer
 	current := lsmt.nodes
 	for current != nil {
+		fmt.Println(current.sstG)
 		err = binary.Write(&buf, binary.BigEndian, current.sstG)
 		err = binary.Write(&buf, binary.BigEndian, current.lvl)
 		current = current.next
@@ -247,7 +250,7 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 func (lsmt *LSMTree) GetNextGeneration() int {
 	var gen int = -1
 	current := lsmt.nodes
-	for gen == -1 || current != nil {
+	for gen == -1 && current != nil {
 		gen = current.sstG
 		current = current.next
 	}

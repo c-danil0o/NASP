@@ -11,7 +11,7 @@ var Second Memtable
 var Generation uint32
 
 func Init() {
-	Generation = 0
+	Generation = uint32(lsmt.Active.GetNextGeneration())
 	Active = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
 	Second = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
 }
