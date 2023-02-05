@@ -59,17 +59,20 @@ func (record *LogRecord) Write(writer io.Writer) error {
 func (wal *SegmentedWAL) WriteRecord(record LogRecord) error {
 	// Going to next segment
 	if wal.CurrentSize+1 > wal.SegmentSize {
+		wal.CurrentSegment.Close()
 		wal.SegmentCount++
 		wal.CurrentSize = 0
 	}
 
 	// Openning current file for segment
 	var err error
+	// if wal.CurrentSegment.Fd() < 0 {
 	wal.CurrentSegment, err = os.OpenFile(WAL_STR+strconv.Itoa(wal.SegmentCount)+LOG_STR, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	// }
 
 	// Write the record to the file
 	if err := record.Write(wal.CurrentSegment); err != nil {
