@@ -6,10 +6,12 @@ import (
 	"os"
 	"strconv"
 
+	config "github.com/c-danil0o/NASP/Config"
 	lsmt "github.com/c-danil0o/NASP/LSM"
 
-	config "github.com/c-danil0o/NASP/Config"
+	cms "github.com/c-danil0o/NASP/Count-Min"
 	container "github.com/c-danil0o/NASP/DataContainer"
+	hll "github.com/c-danil0o/NASP/HyperLogLog"
 	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
 	wal "github.com/c-danil0o/NASP/WAL"
@@ -35,7 +37,8 @@ func menu() {
 		fmt.Println("4. List")
 		fmt.Println("5. Range Scan")
 		fmt.Println("6. Input SSTable tests")
-		fmt.Println("7. CMS")
+		fmt.Println("7. Count-Min Sketch")
+		fmt.Println("8. HyperLogLog")
 		fmt.Println("0. Izlaz")
 		fmt.Print(">> ")
 
@@ -75,7 +78,7 @@ func menu() {
 				fmt.Println(res)
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
 						if int(i) >= len(res) {
 							if i == viewPage*resultsPerPage {
 								fmt.Println("Nema rezultata na ovoj stranici.")
@@ -101,7 +104,7 @@ func menu() {
 			if res, err := rangeScan(); err == nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
 						if int(i) >= len(res) {
 							if i == viewPage*resultsPerPage {
 								fmt.Println("Nema rezultata na ovoj stranici.")
@@ -128,7 +131,9 @@ func menu() {
 		case 6:
 			testing()
 		case 7:
-
+			cms.Menu()
+		case 8:
+			hll.Menu()
 		default:
 			fmt.Println("Neispravan unos. Pokusajte ponovo.")
 		}
@@ -169,31 +174,31 @@ func testing() {
 	if err := mt.Active.Add([]byte("c"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
+	// if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
 
-	if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
-	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
-		fmt.Println(err)
-	}
+	// if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+	// 	fmt.Println(err)
+	// }
 	fmt.Println("\nTest cases put successfully")
 	// fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
@@ -368,8 +373,7 @@ func main() {
 	wal.Init()
 	mt.Init()
 	lru.Init()
+	// lsmt.NewLSMTree()
 
-	////lsmt := LSM.NewLSMTree()
-	//lsm.NewLSMTree()
 	menu()
 }

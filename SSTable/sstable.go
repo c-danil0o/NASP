@@ -360,23 +360,23 @@ func ReadTOC(filename string) (map[string]string, error) {
 func RemoveFiles(toc map[string]string) error {
 	err := os.Remove(toc["data"])
 	if err != nil {
-		//return err
+		return err
 	}
 	err = os.Remove(toc["index"])
 	if err != nil {
-		//return err
+		return err
 	}
 	err = os.Remove(toc["filter"])
 	if err != nil {
-		//return err
+		return err
 	}
 	err = os.Remove(toc["metadata"])
 	if err != nil {
-		//return err
+		return err
 	}
 	err = os.Remove(toc["summary"])
 	if err != nil {
-		//return err
+		return err
 	}
 	return nil
 
