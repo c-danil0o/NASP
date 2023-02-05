@@ -8,7 +8,7 @@ import (
 
 	lsmt "github.com/c-danil0o/NASP/LSM"
 
-	config "github.com/c-danil0o/NASP/Config"
+	countmin "github.com/c-danil0o/NASP/Count-Min"
 	container "github.com/c-danil0o/NASP/DataContainer"
 	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
@@ -75,7 +75,7 @@ func menu() {
 				fmt.Println(res)
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
 						if int(i) >= len(res) {
 							if i == viewPage*resultsPerPage {
 								fmt.Println("Nema rezultata na ovoj stranici.")
@@ -101,7 +101,7 @@ func menu() {
 			if res, err := rangeScan(); err == nil {
 				if res != nil {
 					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < resultsPerPage; i++ {
+					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
 						if int(i) >= len(res) {
 							if i == viewPage*resultsPerPage {
 								fmt.Println("Nema rezultata na ovoj stranici.")
@@ -352,13 +352,15 @@ func rangeScan() ([]container.DataNode, error) {
 }
 
 func main() {
-	config.ReadConfig("config.json")
+	countmin.CmsMeni()
+	// config.ReadConfig("config.json")
 
-	wal.Init()
-	mt.Init()
-	lru.Init()
-	lsmt.Init()
+	// wal.Init()
+	// mt.Init()
+	// lru.Init()
+	// lsmt.Init()
+
 	////lsmt := LSM.NewLSMTree()
 	//lsm.NewLSMTree()
-	menu()
+	// menu()
 }
