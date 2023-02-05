@@ -215,7 +215,7 @@ func InitSingle(nodes []container.DataNode, generation uint32) error {
 
 	summary.UpdateOffset(offset)
 	dataFile.Seek(head["summary"], 0)
-	summaryOffset, err := summary.WriteSummary(dataFile, index.keys[len(index.keys)-1])
+	summaryOffset, err := summary.WriteSummary(dataFile, index.keys[index.indexSize()-1])
 	if err != nil {
 		return err
 	}
