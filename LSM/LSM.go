@@ -122,23 +122,14 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
-	foundVals := make(map[string]container.DataNode)
 	for current != nil {
 		if current.sstG != -1 {
 			found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
 			if found {
-				for _, v := range tempRetVal {
-					_, ok := foundVals[string(v.Key())]
-					if !ok {
-						foundVals[string(v.Key())] = v
-					}
-				}
+				retVal = append(retVal, tempRetVal...)
 			}
 		}
 		current = current.next
-	}
-	for _, k := range foundVals {
-		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -149,24 +140,14 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
-	foundVals := make(map[string]container.DataNode)
 	for current != nil {
 		if current.sstG != -1 {
 			found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
 			if found {
-				for _, v := range tempRetVal {
-					_, ok := foundVals[string(v.Key())]
-					if !ok {
-						foundVals[string(v.Key())] = v
-					}
-				}
+				retVal = append(retVal, tempRetVal...)
 			}
 		}
-
 		current = current.next
-	}
-	for _, k := range foundVals {
-		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }

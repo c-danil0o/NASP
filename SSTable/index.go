@@ -145,13 +145,44 @@ func FindIDSegmentsMultiple(key []byte, file *os.File, start int64) ([]int64, er
 	return retVal, nil
 }
 
-func FindRangeIDSegments(minKey []byte, maxKey []byte, file *os.File, start int64, count int) ([]int64, error) {
+func FindRangeIDSegmentsMultiple(minKey []byte, maxKey []byte, file *os.File, start int64) ([]int64, error) {
 	_, err := file.Seek(start, 0)
 	if err != nil {
 		return nil, err
 	}
 	var retVal []int64
-	for i := 0; i < count; i++ {
+	for true {
+		var keylen uint64
+		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			}
+			return nil, err
+		}
+		indexKey := make([]byte, keylen)
+		err := binary.Read(file, binary.BigEndian, &indexKey)
+		if err != nil {
+			return nil, err
+		}
+		var position uint64
+		if err := binary.Read(file, binary.BigEndian, &position); err != nil {
+			return nil, err
+		}
+		if bytes.Compare(indexKey, minKey) >= 0 && bytes.Compare(indexKey, maxKey) <= 0 {
+			retVal = append(retVal, int64(position))
+		}
+	}
+	return retVal, nil
+}
+
+func FindRangeIDSegments(min []byte, max []byte, file *os.File, start int64, stop int64) ([]int64, error) {
+	_, err := file.Seek(start, 0)
+	if err != nil {
+		return nil, err
+	}
+	var retVal []int64
+	var startoff = start
+	for startoff <= stop {
 		var keylen uint64
 		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
 			return nil, err
@@ -165,9 +196,10 @@ func FindRangeIDSegments(minKey []byte, maxKey []byte, file *os.File, start int6
 		if err := binary.Read(file, binary.BigEndian, &position); err != nil {
 			return nil, err
 		}
-		if bytes.Compare(indexKey, minKey) >= 0 && bytes.Compare(maxKey, indexKey) >= 0 {
+		if bytes.Compare(indexKey, min) >= 0 && bytes.Compare(indexKey, max) <= 0 {
 			retVal = append(retVal, int64(position))
 		}
+		startoff += 8 + 8 + int64(keylen)
 	}
 	return retVal, nil
 }

@@ -78,11 +78,10 @@ func (cache *Cache) Find(key []byte) (container.DataNode, bool) {
 func (cache *Cache) Insert(value container.DataNode) {
 	foundElement, ok := cache.elements[string(value.Key())]
 	if ok {
-		cache.cache.MoveToFront(foundElement)
-		return
-	}
-
-	if cache.cache.Len() == cache.size {
+		cache.cache.Remove(foundElement)
+		x := foundElement.Value.(*Element)
+		delete(cache.elements, string(x.value.Key()))
+	} else if cache.cache.Len() == cache.size {
 		eraseElement := cache.cache.Back()
 		if eraseElement != nil {
 			cache.cache.Remove(eraseElement)

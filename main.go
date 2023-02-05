@@ -206,6 +206,7 @@ func testing() {
 	if err := mt.Active.Add([]byte("dat1"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
+
 	if err := mt.Active.Add([]byte("data1"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
@@ -290,6 +291,8 @@ func delete() bool {
 					return false
 				}
 			}
+			record.SetTombstone(1)
+			lru.Active.Insert(record)
 			return true
 		} else {
 			fmt.Println("Trazeni rekord ne postoji.")
@@ -310,8 +313,13 @@ func list() ([]container.DataNode, error) {
 
 	var retVal []container.DataNode
 
+	// Append from memtable
+	foundVals := make(map[string]container.DataNode)
 	ret := mt.Active.PrefixScan(key)
 	if ret != nil {
+		for _, v := range retVal {
+			foundVals[string(v.Key())] = v
+		}
 		retVal = append(retVal, ret...)
 	}
 
@@ -322,12 +330,17 @@ func list() ([]container.DataNode, error) {
 	} else if !found {
 		return retVal, nil
 	} else {
-
-		foundVals := make(map[string]container.DataNode)
-		for _, v := range retVal {
-
+		for _, v := range ret {
+			_, ok := foundVals[string(v.Key())]
+			if !ok {
+				foundVals[string(v.Key())] = v
+			}
 		}
-		retVal = append(retVal, ret...)
+
+		retVal = []container.DataNode{}
+		for _, k := range foundVals {
+			retVal = append(retVal, k)
+		}
 	}
 	return retVal, nil
 }
@@ -352,9 +365,14 @@ func rangeScan() ([]container.DataNode, error) {
 	}
 
 	var retVal []container.DataNode
-	// Get everything from mem
+
+	// Append from memtable
+	foundVals := make(map[string]container.DataNode)
 	ret := mt.Active.RangeScan(minKey, maxKey)
 	if ret != nil {
+		for _, v := range retVal {
+			foundVals[string(v.Key())] = v
+		}
 		retVal = append(retVal, ret...)
 	}
 
@@ -365,7 +383,17 @@ func rangeScan() ([]container.DataNode, error) {
 	} else if !found {
 		return retVal, nil
 	} else {
-		retVal = append(retVal, ret...)
+		for _, v := range ret {
+			_, ok := foundVals[string(v.Key())]
+			if !ok {
+				foundVals[string(v.Key())] = v
+			}
+		}
+
+		retVal = []container.DataNode{}
+		for _, k := range foundVals {
+			retVal = append(retVal, k)
+		}
 	}
 	return retVal, nil
 }
