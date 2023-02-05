@@ -41,6 +41,7 @@ func menu() {
 		fmt.Println("7. Count-Min Sketch")
 		fmt.Println("8. HyperLogLog")
 		fmt.Println("9. Ispis svih WAL segmenata iz")
+		fmt.Println("10. Compact")
 		fmt.Println("0. Izlaz")
 		fmt.Print(">> ")
 
@@ -150,6 +151,8 @@ func menu() {
 				hll.Menu()
 			case 9:
 				wal.Active.PrintLogs()
+			case 10:
+				lsmt.Active.Compact()
 			default:
 				fmt.Println("Neispravan unos. Pokusajte ponovo.")
 			}

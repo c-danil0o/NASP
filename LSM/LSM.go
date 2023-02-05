@@ -9,11 +9,11 @@ import (
 	"os"
 	"strconv"
 
+	sst "github.com/c-danil0o/NASP/SSTable"
+
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
 	"github.com/c-danil0o/NASP/Finder"
-
-	sst "github.com/c-danil0o/NASP/SSTable"
 )
 
 type LSMTree struct {
@@ -22,7 +22,7 @@ type LSMTree struct {
 	nodes *LSMNode
 }
 type LSMNode struct {
-	sstG int
+	sstG []int
 	next *LSMNode
 	lvl  int
 }
@@ -32,6 +32,8 @@ var Active LSMTree
 func Init() {
 	Active = *NewLSMTree()
 	Active.DeserializeLSMT()
+	// fmt.Println(Active.GetNextGeneration())
+	// memtable.Generation = uint32(Active.GetNextGeneration())
 }
 
 // mem memtable.Memtable
@@ -39,52 +41,161 @@ func NewLSMTree() *LSMTree {
 	return &LSMTree{
 		max: config.LSM_DEPTH,
 		nodes: &LSMNode{
-			sstG: -1,
+			sstG: []int{},
 			next: nil,
 			lvl:  1,
 		},
 	}
 }
 
-func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
-	if node.sstG == -1 {
-		node.sstG = SSTable
-	} else {
-		if node.lvl == lsm.max {
-			fmt.Println("Popunjen je max level LSMa.")
-		} else {
-			var novaGen int
-			if node.sstG > SSTable {
-				novaGen = node.sstG + 1
-			} else {
-				novaGen = SSTable + 1
-			}
-			fmt.Println("MRDZ:")
-			fmt.Println(node.sstG)
-			fmt.Println(SSTable)
-			fmt.Println(novaGen)
-			fmt.Println("======")
-			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
-			if err != nil {
-				return err
+// ovde ce morati da se menja logika i to ozbiljno
+// treba upariti po dva
+// kako kroz rekurziju ???
+//func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
+//	if node.sstG[0] == -1 {
+//		node.sstG[0] = SSTable
+//	} else {
+//		if node.lvl == lsm.max {
+//			fmt.Println("Popunjen je max level LSMa.")
+//		} else {
+//			var novaGen int
+//			if node.sstG > SSTable {
+//				novaGen = node.sstG + 1
+//			} else {
+//				novaGen = SSTable + 1
+//			}
+//			fmt.Println("MRDZ:")
+//			fmt.Println(node.sstG)
+//			fmt.Println(SSTable)
+//			fmt.Println(novaGen)
+//			fmt.Println("======")
+//			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
+//			//os.removefiles(node.sstg)
+//			//os.removefiles(sstable)
+//			if err != nil {
+//				return err
+//			}
+//
+//			if temp >= config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
+//				if node.next == nil {
+//					node.next = &LSMNode{
+//						sstG: -1,
+//						next: nil,
+//						lvl:  node.lvl + 1,
+//					}
+//				}
+//				node.sstG = -1
+//				return lsm.insertInNode(novaGen, node.next)
+//			} else {
+//				node.sstG = novaGen
+//			}
+//		}
+//	}
+//
+//	return nil
+//}
+
+// err, temp := sst.Merge(node.sstG, SSTable, novaGen)
+
+func (lsmt *LSMTree) Compact() error {
+	current := lsmt.nodes
+	var err error
+	for current != nil {
+		var size int
+		j := 1
+		temp := -1
+		for i := 0; i < len(current.sstG); i += 2 {
+			newGen := lsmt.GetNextGeneration()
+			if j < len(current.sstG) && i < len(current.sstG) {
+				if temp == -1 { //spaja dva nova prvi mrdz / prosli mrdz je gurnuo dole
+					err, size = sst.Merge(current.sstG[i], current.sstG[j], newGen)
+					if err != nil {
+						return err
+					}
+				} else { //prethodno spajanje je manje od size pa se spaja sa 1
+					err, size = sst.Merge(current.sstG[temp], current.sstG[i], newGen)
+					if err != nil {
+						return err
+					}
+					i--
+				}
+				if size > config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(current.lvl))) {
+					if current.next != nil {
+						current.next.sstG = append(current.next.sstG, newGen)
+					} else { // gura na nizi nivo u stablu
+						if current.lvl >= config.LSM_DEPTH {
+							println("Doslo je do gornje granice stabla, nema vise mesta!")
+						} else {
+							current.next = &LSMNode{sstG: []int{newGen}, next: nil, lvl: current.lvl + 1}
+						}
+					}
+					temp = -1
+				} else {
+					temp = i
+				}
+				j += 2
 			}
 
-			if temp >= config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
-				if node.next == nil {
-					node.next = &LSMNode{
-						sstG: -1,
-						next: nil,
-						lvl:  node.lvl + 1,
+		}
+		if temp == -1 {
+			current.sstG = []int{}
+		} else {
+			current.sstG = []int{temp}
+		}
+		if current.lvl >= config.LSM_DEPTH {
+			fmt.Println("Vase stablo je puno nema vise mesta!Kompakcija je obustavljena.")
+			break
+		}
+		current = current.next
+	}
+	return nil
+}
+
+func (lsmt *LSMTree) Compaction() error {
+	current := lsmt.nodes
+	//var err error = nil
+	var newGen int
+	var endOFLevel bool = false
+	for current != nil {
+		size := 0
+		i := 0
+		j := 1
+		for !endOFLevel {
+			for size < config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(current.lvl))) {
+				if j < len(current.sstG) || i < len(current.sstG) {
+					newGen = lsmt.GetNextGeneration()
+					err, temp := sst.Merge(current.sstG[i], current.sstG[j], newGen)
+					if err != nil {
+						return err
 					}
+					size = temp
+					i++
+					j++
+
+				} else {
+					endOFLevel = true
+					break
 				}
-				node.sstG = -1
-				return lsm.insertInNode(novaGen, node.next)
-			} else {
-				node.sstG = novaGen
+			}
+			if size >= config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(current.lvl))) {
+				if current.next != nil {
+					current.next.sstG = append(current.next.sstG, newGen)
+				} else {
+					current.next = &LSMNode{sstG: []int{newGen}, next: nil, lvl: current.lvl + 1}
+					//current.next.sstG = append(current.next.sstG, )
+				}
 			}
 		}
-	}
 
+		current = current.next
+
+	}
+	return nil
+}
+
+func (lsm *LSMTree) insertInNode(sst int, node *LSMNode) error {
+	lsm.nodes.sstG = append(lsm.nodes.sstG, sst)
+	fmt.Println(node.sstG)
 	return nil
 }
 
@@ -98,15 +209,17 @@ func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
 	var retVal container.DataNode
 	current := lsm.nodes
 	for current != nil {
-		if current.sstG != -1 {
-			found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
-			if found {
-				return found, retVal, err
+		for i := len(current.sstG) - 1; i >= 0; i-- {
+			if current.sstG[i] != -1 {
+				found, retVal, err = Finder.FindKey(key, uint32(current.sstG[i]))
+				if found {
+					return found, retVal, err
+				}
 			}
 		}
-
 		current = current.next
 	}
+	//found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 	return found, retVal, err
 }
 
@@ -116,14 +229,25 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
+	foundVals := make(map[string]container.DataNode)
 	for current != nil {
-		if current.sstG != -1 {
-			found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
-			if found {
-				retVal = append(retVal, tempRetVal...)
+		for i := len(current.sstG) - 1; i >= 0; i-- {
+			if current.sstG[i] != -1 {
+				found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG[i]))
+				if found {
+					for _, v := range tempRetVal {
+						_, ok := foundVals[string(v.Key())]
+						if !ok {
+							foundVals[string(v.Key())] = v
+						}
+					}
+				}
 			}
 		}
 		current = current.next
+	}
+	for _, k := range foundVals {
+		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -134,14 +258,25 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
+	foundVals := make(map[string]container.DataNode)
 	for current != nil {
-		if current.sstG != -1 {
-			found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
-			if found {
-				retVal = append(retVal, tempRetVal...)
+		for i := len(current.sstG) - 1; i >= 0; i-- {
+			if current.sstG[i] != -1 {
+				found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG[i]))
+				if found {
+					for _, v := range tempRetVal {
+						_, ok := foundVals[string(v.Key())]
+						if !ok {
+							foundVals[string(v.Key())] = v
+						}
+					}
+				}
 			}
 		}
 		current = current.next
+	}
+	for _, k := range foundVals {
+		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -185,8 +320,12 @@ func (lsmt *LSMTree) Serialize() error {
 	var buf bytes.Buffer
 	current := lsmt.nodes
 	for current != nil {
-		err = binary.Write(&buf, binary.BigEndian, int64(current.sstG))
-		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl))
+		err = binary.Write(&buf, binary.BigEndian, int64(len(current.sstG))) //duzina generacija
+		for i := 0; i < len(current.sstG); i++ {
+			err = binary.Write(&buf, binary.BigEndian, int64(current.sstG[i])) //svaki gen u cvoru
+		}
+		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl)) // level
+
 		current = current.next
 	}
 	_, err = lsmtreeFile.Write(buf.Bytes())
@@ -203,10 +342,12 @@ func (lsmt *LSMTree) Serialize1() error {
 	defer binFile.Close()
 	current := lsmt.nodes
 	for current != nil {
-		err = binary.Write(binFile, binary.BigEndian, int64(current.sstG))
+		//fmt.Println(current.sstG)
+		err = binary.Write(binFile, binary.BigEndian, int64(current.sstG[0]))
 		if err != nil {
 			return err
 		}
+		//fmt.Println(current.lvl)
 		err = binary.Write(binFile, binary.BigEndian, int64(current.lvl))
 		if err != nil {
 			return err
@@ -220,101 +361,112 @@ func (lsmt *LSMTree) Serialize1() error {
 func (lsmt *LSMTree) DeserializeLSMT() error {
 
 	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_RDONLY, 0600)
+	//lsmt := LSMTree{max: config.LSM_DEPTH, nodes: nil}
 	if err != nil {
 		return err
 	}
 	defer lsmtreeFile.Close()
 
-	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
+	lsmt.nodes = &LSMNode{sstG: []int{}, lvl: 0, next: nil}
 	current := lsmt.nodes
 
+	//var isize int64
 	var data int64
 	for true {
-
-		/*_, err = lsmtreeFile.Read(mybytes)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			break
-		}*/
-		//buf := bytes.NewBuffer(mybytes)
-		//val, err := binary.ReadVarint(buf)
-
 		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
 		if err == io.EOF {
 			break
 		}
 		if err == nil {
-			current.sstG = int(data)
+			for i := int64(0); i < data; i++ {
+				err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+				if err == nil {
+					current.sstG = append(current.sstG, int(data))
+				}
+			}
+			err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+			if err == nil {
+				current.lvl = int(data)
+			}
 		}
-
-		//_, err = lsmtreeFile.Read(mybytes)
-		/*if err == io.EOF || err == io.ErrUnexpectedEOF {
-
-			break
-		}*/
-		/*buf = bytes.NewBuffer(mybytes)
-		val, err = binary.ReadVarint(buf)
-		if err == nil {
-			current.lvl = int(val)
-		}*/
-
-		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
-		if err == nil {
-			current.lvl = int(data)
-		}
-		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
+		current.next = &LSMNode{sstG: []int{-1}, lvl: current.lvl + 1, next: nil}
 		current = current.next
 	}
 	return err
 }
 
-func (lsmt *LSMTree) DeserializeLSMT1() error {
-	binFile, err := os.Open("LSMTree.bin")
-	if err != nil {
-		return err
-	}
-	defer binFile.Close()
+//######################################################
+//	for true {
+//
+//		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+//		if err == io.EOF {
+//			break
+//		}
+//		if err == nil {
+//			current.sstG = int(data)
+//		}
+//
+//		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+//		if err == nil {
+//			current.lvl = int(data)
+//		}
+//		current.next = &LSMNode{sstG: []int{-1}, lvl: current.lvl + 1, next: nil}
+//		current = current.next
+//	}
+//	return err
+//}
 
-	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
-	current := lsmt.nodes
-
-	var temp1, temp2 int64
-
-	for {
-		err = binary.Read(binFile, binary.BigEndian, &temp1)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return err
-			}
-		}
-
-		err = binary.Read(binFile, binary.BigEndian, &temp2)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return err
-			}
-		}
-		//fmt.Println("PRVI: " + string(int(temp1)))
-		//fmt.Print("DRUGI: " + string(int(temp2)))
-		current.sstG = int(temp1)
-		current.lvl = int(temp2)
-		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
-		current = current.next
-	}
-
-	return nil
-}
+//func (lsmt *LSMTree) DeserializeLSMT1() error {
+//	binFile, err := os.Open("LSMTree.bin")
+//	if err != nil {
+//		return err
+//	}
+//	defer binFile.Close()
+//
+//	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
+//	current := lsmt.nodes
+//
+//	var temp1, temp2 int64
+//
+//	for {
+//		err = binary.Read(binFile, binary.BigEndian, &temp1)
+//		if err != nil {
+//			if err == io.EOF {
+//				break
+//			} else {
+//				return err
+//			}
+//		}
+//
+//		err = binary.Read(binFile, binary.BigEndian, &temp2)
+//		if err != nil {
+//			if err == io.EOF {
+//				break
+//			} else {
+//				return err
+//			}
+//		}
+//		//fmt.Println("PRVI: " + string(int(temp1)))
+//		//fmt.Print("DRUGI: " + string(int(temp2)))
+//		current.sstG = int(temp1)
+//		current.lvl = int(temp2)
+//		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
+//		current = current.next
+//	}
+//
+//	return nil
+//}
 
 func (lsmt *LSMTree) GetNextGeneration() int {
 	var gen int = -1
 	current := lsmt.nodes
-	for gen == -1 && current != nil {
-		gen = current.sstG
+	for current != nil {
+		for i := len(current.sstG) - 1; i >= 0; i-- {
+			if gen < current.sstG[i] {
+				gen = current.sstG[i]
+			}
+		}
 		current = current.next
-		//fmt.Println(gen)
 	}
 	if gen == -1 {
 		return 0
@@ -323,6 +475,17 @@ func (lsmt *LSMTree) GetNextGeneration() int {
 	}
 }
 
+//func (lsmt *LSMTree) GetNextGeneration() int {
+//	var gen int = -1
+//	current := lsmt.nodes
+//	for current != nil {
+//		if len(current.sstG) > 0 {
+//			ind := len(current.sstG) - 1
+//			gen = current.sstG[ind]
+//		}
+//		current = current.next
+//	}
+//}
 //package LSM
 //
 //import (

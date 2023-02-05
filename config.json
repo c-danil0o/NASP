@@ -7,5 +7,5 @@
 	"lsm_depth": 4,
 	"cache_size": 100,
 	"wal_segment_size": 10,
-	"request_permin": 3
+	"request_permin": 1000
 }
