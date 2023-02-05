@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -147,7 +148,8 @@ func menu() {
 					}
 				}
 			case 6:
-				testing()
+				//testing()
+				testingRandom(30)
 			case 7:
 				cms.Menu()
 			case 8:
@@ -276,6 +278,32 @@ func testing() {
 	}
 	fmt.Println("\nTest cases put successfully")
 	// fmt.Println(Finder.FindKey([]byte("z"), 2))
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return b
+}
+func testingRandom(n int) error {
+	for i := 0; i < n; i++ {
+		randomKey := RandStringBytes(5)
+		randomValue := RandStringBytes(6)
+		fmt.Println(string(randomKey) + "  :  " + string(randomValue))
+		if err := wal.Active.WriteRecord(wal.LogRecord{Tombstone: 0, Key: []byte(randomKey), Value: randomValue}); err != nil {
+			return err
+		}
+
+		if err := mt.Active.Add(randomKey, randomValue); err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+	return nil
 }
 
 func put() bool {
