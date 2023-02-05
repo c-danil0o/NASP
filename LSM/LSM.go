@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"strconv"
-	"unsafe"
 
 	config "github.com/c-danil0o/NASP/Config"
 	container "github.com/c-danil0o/NASP/DataContainer"
@@ -34,6 +33,7 @@ var Active LSMTree
 func Init() {
 	Active = *NewLSMTree()
 	Active.DeserializeLSMT()
+	fmt.Println(Active.GetNextGeneration())
 	//memtable.Generation = uint32(Active.GetNextGeneration())
 }
 
@@ -62,7 +62,10 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			} else {
 				novaGen = SSTable + 1
 			}
-
+			fmt.Println("MRDZ:")
+			fmt.Println(node.sstG)
+			fmt.Println(SSTable)
+			fmt.Println(novaGen)
 			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
 			//os.removefiles(node.sstg)
 			//os.removefiles(sstable)
@@ -189,7 +192,7 @@ func RemoveFiles(generation int32) error {
 
 }
 
-func (lsmt *LSMTree) Serialize() error {
+func (lsmt *LSMTree) Serialize1() error {
 	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	defer lsmtreeFile.Close()
 	if err != nil {
@@ -199,16 +202,43 @@ func (lsmt *LSMTree) Serialize() error {
 	current := lsmt.nodes
 	for current != nil {
 		err = binary.Write(&buf, binary.BigEndian, int64(current.sstG))
+		_, err = lsmtreeFile.Write(buf.Bytes())
 		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl))
+		_, err = lsmtreeFile.Write(buf.Bytes())
 		current = current.next
 	}
-	_, err = lsmtreeFile.Write(buf.Bytes())
+
 	lsmtreeFile.Sync()
 
 	return err
 }
 
-func (lsmt *LSMTree) DeserializeLSMT() error {
+func (lsmt *LSMTree) Serialize() error {
+	binFile, err := os.Create("LSMTree.bin")
+	if err != nil {
+		return err
+	}
+	defer binFile.Close()
+	current := lsmt.nodes
+	for current != nil {
+		fmt.Println(current.sstG)
+		err = binary.Write(binFile, binary.BigEndian, int64(current.sstG))
+		if err != nil {
+			return err
+		}
+		fmt.Println(current.lvl)
+		err = binary.Write(binFile, binary.BigEndian, int64(current.lvl))
+		if err != nil {
+			return err
+		}
+		current = current.next
+	}
+
+	return nil
+}
+
+func (lsmt *LSMTree) DeserializeLSMT1() error {
+
 	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	//lsmt := LSMTree{max: config.LSM_DEPTH, nodes: nil}
 	if err != nil {
@@ -216,40 +246,90 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 	}
 	defer lsmtreeFile.Close()
 
-	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0}
+	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
 	current := lsmt.nodes
 
-	var isize int64 = -1
-
+	//var isize int64
+	var data int64
 	lsmtreeFile.Seek(0, 0)
-	mybytes := make([]byte, unsafe.Sizeof(isize))
+	//mybytes := make([]byte, unsafe.Sizeof(isize))
 	for true {
 
-		_, err = lsmtreeFile.Read(mybytes)
+		/*_, err = lsmtreeFile.Read(mybytes)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			fmt.Println("EALO")
+			break
+		}*/
+		//buf := bytes.NewBuffer(mybytes)
+		//val, err := binary.ReadVarint(buf)
+
+		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+		if err == io.EOF {
 			break
 		}
-		buf := bytes.NewBuffer(mybytes)
-		val, err := binary.ReadVarint(buf)
 		if err == nil {
-			current.sstG = int(val)
+			current.sstG = int(data)
 		}
 
-		_, err = lsmtreeFile.Read(mybytes)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
+		//_, err = lsmtreeFile.Read(mybytes)
+		/*if err == io.EOF || err == io.ErrUnexpectedEOF {
 
 			break
-		}
-		buf = bytes.NewBuffer(mybytes)
+		}*/
+		/*buf = bytes.NewBuffer(mybytes)
 		val, err = binary.ReadVarint(buf)
 		if err == nil {
 			current.lvl = int(val)
+		}*/
+
+		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+		if err == nil {
+			current.sstG = int(data)
 		}
 		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
 		current = current.next
 	}
 	return err
+}
+
+func (lsmt *LSMTree) DeserializeLSMT() error {
+	binFile, err := os.Open("LSMTree.bin")
+	if err != nil {
+		return err
+	}
+	defer binFile.Close()
+
+	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
+	current := lsmt.nodes
+
+	var temp1, temp2 int64
+
+	for {
+		err = binary.Read(binFile, binary.BigEndian, &temp1)
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return err
+			}
+		}
+
+		err = binary.Read(binFile, binary.BigEndian, &temp2)
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return err
+			}
+		}
+		fmt.Println(int(temp1))
+		fmt.Print(int(temp2))
+		current.sstG = int(temp1)
+		current.lvl = int(temp2)
+		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
+		current = current.next
+	}
+
+	return nil
 }
 
 func (lsmt *LSMTree) GetNextGeneration() int {
