@@ -149,7 +149,7 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
-	var foundVals map[string]container.DataNode
+	foundVals := make(map[string]container.DataNode)
 	for current != nil {
 		if current.sstG != -1 {
 			found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))

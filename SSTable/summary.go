@@ -160,10 +160,10 @@ func ReadSummary(file *os.File, offset int64) (*Summary, error) {
 }
 
 func (summary *Summary) FindKey(key []byte) (int64, error) {
-	for i := 0; i < int(summary.size); i++ {
+	for i := 0; i < int(summary.summarySize()); i++ {
 		if bytes.Compare(summary.keys[i], key) == 0 {
 			return int64(summary.positions[i]), nil
-		} else if i == int(summary.size)-1 {
+		} else if i == int(summary.summarySize())-1 {
 			return int64(summary.positions[i]), nil
 		} else if bytes.Compare(summary.keys[i], key) == -1 && bytes.Compare(summary.keys[i+1], key) == 1 {
 			return int64(summary.positions[i]), nil
@@ -174,7 +174,8 @@ func (summary *Summary) FindKey(key []byte) (int64, error) {
 
 func (summary *Summary) FindPrefixKeys(key []byte) []int64 {
 	var retVal []int64
-	for i := 0; i < int(summary.size); i++ {
+	fmt.Println(summary.keys, " - ", key)
+	for i := 0; i < int(summary.summarySize()); i++ {
 		if bytes.HasPrefix(summary.keys[i], key) {
 			retVal = append(retVal, int64(summary.positions[i]))
 		}
