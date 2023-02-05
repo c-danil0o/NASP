@@ -206,6 +206,12 @@ func testing() {
 	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
+	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("dat2"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("\nTest cases put successfully")
 	// fmt.Println(Finder.FindKey([]byte("z"), 2))
 }

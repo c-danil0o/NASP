@@ -137,6 +137,7 @@ func Init(nodes []container.DataNode, generation uint32) error {
 		indexFile.Close()
 		summaryFile.Close()
 		metadataFile.Close()
+		bloomFile.Close()
 		return nil
 	} else {
 		err := InitSingle(nodes, generation)
@@ -590,7 +591,7 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		tocFile.Close()
 		dataFile1.Close()
 		dataFile2.Close()
-
+		dataFile.Close()
 		err = RemoveFiles(file1)
 		if err != nil {
 			return err, 0
@@ -781,7 +782,7 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 
 		summary.UpdateOffset(offset)
 		dataFile.Seek(head["summary"], 0)
-		summaryOffset, err := summary.WriteSummary(dataFile, index.keys[len(index.keys)-1])
+		summaryOffset, err := summary.WriteSummary(dataFile, index.keys[index.indexSize()-1])
 		if err != nil {
 			return err, 0
 		}
