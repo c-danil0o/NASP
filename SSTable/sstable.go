@@ -62,14 +62,15 @@ func Init(nodes []container.DataNode, generation uint32) error {
 		metadataFile, _ := os.OpenFile(sstable.metadataFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 		tocFile, _ := os.OpenFile(sstable.TOCFilename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 		sstable.makeTOC(tocFile)
+		tocFile.Close()
 		merkleBuffer := make([]Record, len(nodes))
 		var bf bytes.Buffer
 		binary.Write(&bf, binary.BigEndian, int64(len(nodes)))
 		dataFile.Write(bf.Bytes())
-		defer dataFile.Close()
-		defer indexFile.Close()
-		defer summaryFile.Close()
-		defer metadataFile.Close()
+		//defer dataFile.Close()
+		//defer indexFile.Close()
+		//defer summaryFile.Close()
+		//defer metadataFile.Close()
 		var offset uint64 = 8 // configure offset  + head
 		var indexOffset uint64 = 0
 		var summarySize = int(math.Ceil(float64(len(nodes)) / float64(sstable.SegmentSize)))
@@ -132,10 +133,10 @@ func Init(nodes []container.DataNode, generation uint32) error {
 		if err != nil {
 			return err
 		}
-		metadataFile.Sync()
-		indexFile.Sync()
-		summaryFile.Sync()
-		bloomFile.Sync()
+		dataFile.Close()
+		indexFile.Close()
+		summaryFile.Close()
+		metadataFile.Close()
 		return nil
 	} else {
 		err := InitSingle(nodes, generation)
@@ -264,7 +265,7 @@ func InitSingle(nodes []container.DataNode, generation uint32) error {
 		return err
 	}
 	dataFile.Write(buf.Bytes())
-	dataFile.Sync()
+	dataFile.Close()
 	return nil
 }
 
@@ -341,7 +342,7 @@ func ReadTOC(filename string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	//defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
@@ -353,7 +354,7 @@ func ReadTOC(filename string) (map[string]string, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-
+	file.Close()
 	return result, nil
 }
 
@@ -395,10 +396,10 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		}
 
 		dataFile1, _ := os.OpenFile(file1["data"], os.O_RDONLY, 0600)
-		defer dataFile1.Close()
+		//defer dataFile1.Close()
 
 		dataFile2, _ := os.OpenFile(file2["data"], os.O_RDONLY, 0600)
-		defer dataFile2.Close()
+		//defer dataFile2.Close()
 
 		fmt.Println("\n\n", dataFile1.Name(), "-", dataFile2.Name(), "\n\n")
 
@@ -572,29 +573,29 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		if err != nil {
 			return err, 0
 		}
-		metadataFile.Sync()
-		indexFile.Sync()
-		summaryFile.Sync()
-		bloomFile.Sync()
-
+		metadataFile.Close()
+		indexFile.Close()
+		summaryFile.Close()
+		bloomFile.Close()
+		tocFile.Close()
 		dataFile1.Close()
 		dataFile2.Close()
 
 		err = RemoveFiles(file1)
 		if err != nil {
-			//return err, 0
+			return err, 0
 		}
 		err = RemoveFiles(file2)
 		if err != nil {
-			//return err, 0
+			return err, 0
 		}
 		err = os.Remove(sst1toc)
 		if err != nil {
-			//return err, 0
+			return err, 0
 		}
 		err = os.Remove(sst2toc)
 		if err != nil {
-			//return err, 0
+			return err, 0
 		}
 		return nil, count
 
@@ -617,7 +618,7 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		head["size"] = dataSize
 		head["data"] = int64(offset) /// beginning of data segment
 		merkleBuffer := make([]Record, dataSize)
-		defer dataFile.Close()
+		//defer dataFile.Close()
 		var indexOffset uint64 = 0
 		var summarySize = int(math.Ceil(float64(dataSize) / float64(sstable.SegmentSize)))
 		sstable.NumOfSegments = summarySize
@@ -816,7 +817,9 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 			return err, 0
 		}
 		dataFile.Write(buf.Bytes())
-		dataFile.Sync()
+		dataFile.Close()
+		dataFile1.Close()
+		dataFile2.Close()
 		err = os.Remove(sst1)
 		if err != nil {
 			return err, 0

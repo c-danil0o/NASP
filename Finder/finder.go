@@ -21,7 +21,7 @@ func readTOC(filename string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	//defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 
@@ -34,6 +34,7 @@ func readTOC(filename string) (map[string]string, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
+	f.Close()
 	return data, nil
 
 }
