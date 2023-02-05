@@ -86,15 +86,47 @@ func FindIDSegment(key []byte, file *os.File, start int64, count int) (int64, er
 	return 0, fmt.Errorf("not found")
 }
 
-func FindIDSegments(key []byte, file *os.File, start int64, count int) ([]int64, error) {
+func FindIDSegments(key []byte, file *os.File, start int64, stop int64) ([]int64, error) {
 	_, err := file.Seek(start, 0)
 	if err != nil {
 		return nil, err
 	}
 	var retVal []int64
-	for i := 0; i < count; i++ {
+	var startoff = start
+	for startoff <= stop {
 		var keylen uint64
 		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
+			return nil, err
+		}
+		indexKey := make([]byte, keylen)
+		err := binary.Read(file, binary.BigEndian, &indexKey)
+		if err != nil {
+			return nil, err
+		}
+		var position uint64
+		if err := binary.Read(file, binary.BigEndian, &position); err != nil {
+			return nil, err
+		}
+		if bytes.HasPrefix(indexKey, key) {
+			retVal = append(retVal, int64(position))
+		}
+		startoff += 8 + 8 + int64(keylen)
+	}
+	return retVal, nil
+}
+
+func FindIDSegmentsMultiple(key []byte, file *os.File, start int64) ([]int64, error) {
+	_, err := file.Seek(start, 0)
+	if err != nil {
+		return nil, err
+	}
+	var retVal []int64
+	for true {
+		var keylen uint64
+		if err := binary.Read(file, binary.BigEndian, &keylen); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			}
 			return nil, err
 		}
 		indexKey := make([]byte, keylen)

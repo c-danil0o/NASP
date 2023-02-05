@@ -122,85 +122,77 @@ func PrefixScan(key []byte, generation uint32) (bool, []container.DataNode, erro
 		}
 		dataFile, _ := os.OpenFile(filenames["data"], os.O_RDONLY, 0600)
 		indexFile, _ := os.OpenFile(filenames["index"], os.O_RDONLY, 0600)
-		summaryFile, _ := os.OpenFile(filenames["summary"], os.O_RDONLY, 0600)
 
-		first, last, err := SSTable.ReadFirstLast(summaryFile, 0)
+		var dataPositions []int64
+		var foundRecord *SSTable.Record
+
+		dataPositions = []int64{}
+		dataPositions, err = SSTable.FindIDSegmentsMultiple(key, indexFile, 0)
 		if err != nil {
-			return false, nil, err
+			return true, retVal, err
 		}
-		if bytes.HasPrefix(first, key) || bytes.HasPrefix(last, key) {
-			summary, err := SSTable.ReadSummary(summaryFile, 0)
+		for j := range dataPositions {
+			foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
 			if err != nil {
-				return false, nil, err
+				return true, retVal, err
 			}
-			offsets := summary.FindPrefixKeys(key)
-			fmt.Println(offsets)
-			var dataPositions []int64
-			var foundRecord *SSTable.Record
-			for i := range offsets {
-				dataPositions = []int64{}
-				dataPositions, err = SSTable.FindIDSegments(key, indexFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
-				if err != nil {
-					return true, retVal, err
-				}
-				for j := range dataPositions {
-					foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
-					if err != nil {
-						return true, retVal, err
-					}
-					retVal = append(retVal, foundRecord)
-				}
-			}
+			retVal = append(retVal, foundRecord)
+		}
+
+		if len(retVal) == 0 {
+			return false, nil, nil
 		}
 		return true, retVal, nil
 	} else {
 
-		dataFile, _ := os.OpenFile("usertable-0-.db", os.O_RDONLY, 0600)
+		dataFile, _ := os.OpenFile("usertable-"+strconv.Itoa(int(generation))+"-.db", os.O_RDONLY, 0600)
 		head, _ := SSTable.ReadHead(dataFile)
 
-		first, last, err := SSTable.ReadFirstLast(dataFile, head["summary"])
-		if err != nil {
-			return false, nil, err
-		}
-		if bytes.HasPrefix(first, key) || bytes.HasPrefix(last, key) {
-			// summary, err := SSTable.ReadSummary(dataFile, head["summary"])
-			// if err != nil {
-			// return false, nil, err
-			// }
+		//first, last, err := SSTable.ReadFirstLast(dataFile, head["summary"])
+		//if err != nil {
+		//	return false, nil, err
+		//}
+		//if bytes.HasPrefix(first, key) || bytes.HasPrefix(last, key) {
+		// summary, err := SSTable.ReadSummary(dataFile, head["summary"])
+		// if err != nil {
+		// return false, nil, err
+		// }
 
-			var dataPositions []int64
-			var foundRecord *SSTable.Record
-			offset := head["index"]
-			dataPositions, err = SSTable.FindIDSegments(key, dataFile, offset, config.SSTABLE_SEGMENT_SIZE)
+		var dataPositions []int64
+		var foundRecord *SSTable.Record
+		offset := head["index"]
+		dataPositions, err := SSTable.FindIDSegments(key, dataFile, offset, head["summary"])
+		if err != nil {
+			fmt.Println("er1", err.Error())
+			return true, retVal, err
+		}
+		for j := range dataPositions {
+			foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
 			if err != nil {
-				fmt.Println("er1", err.Error())
+				fmt.Println("er2", err.Error())
 				return true, retVal, err
 			}
-			for j := range dataPositions {
-				foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
-				if err != nil {
-					fmt.Println("er2", err.Error())
-					return true, retVal, err
-				}
-				retVal = append(retVal, foundRecord)
-			}
-			// for i := range offsets {
-			// 	dataPositions = []int64{}
-			// 	dataPositions, err = SSTable.FindIDSegments(key, dataFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
-			// 	if err != nil {
-			// 		return true, retVal, err
-			// 	}
-			// 	for j := range dataPositions {
-			// 		foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
-			// 		if err != nil {
-			// 			return true, retVal, err
-			// 		}
-			// 		retVal = append(retVal, foundRecord)
-			// 	}
-			// }
-			return true, retVal, nil
+			retVal = append(retVal, foundRecord)
 		}
-		return false, nil, nil
+		// for i := range offsets {
+		// 	dataPositions = []int64{}
+		// 	dataPositions, err = SSTable.FindIDSegments(key, dataFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
+		// 	if err != nil {
+		// 		return true, retVal, err
+		// 	}
+		// 	for j := range dataPositions {
+		// 		foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
+		// 		if err != nil {
+		// 			return true, retVal, err
+		// 		}
+		// 		retVal = append(retVal, foundRecord)
+		// 	}
+		// }
+		if len(retVal) == 0 {
+			return false, nil, nil
+		}
+		return true, retVal, nil
+
 	}
 }
 

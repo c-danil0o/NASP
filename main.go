@@ -203,13 +203,13 @@ func testing() {
 	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("dat1"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("data1"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("dat2"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("dat222"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println("\nTest cases put successfully")
@@ -322,6 +322,11 @@ func list() ([]container.DataNode, error) {
 	} else if !found {
 		return retVal, nil
 	} else {
+
+		foundVals := make(map[string]container.DataNode)
+		for _, v := range retVal {
+
+		}
 		retVal = append(retVal, ret...)
 	}
 	return retVal, nil
