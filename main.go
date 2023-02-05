@@ -119,7 +119,7 @@ func menu() {
 					}
 					fmt.Print("\n---Kraj ispisa---\n\n")
 				} else {
-					fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
+					fmt.Println("Ne postoji rekord koji pripada zadatom range-u.")
 				}
 			} else {
 				if err == fmt.Errorf("minKey > maxKey") {
@@ -152,7 +152,7 @@ func getPaginationInfo() (uint32, uint32) {
 }
 
 func testing() {
-	if err := mt.Active.Add([]byte("aaaf"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("data1"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	if err := mt.Active.Add([]byte("b"), []byte("val")); err != nil {
@@ -164,32 +164,32 @@ func testing() {
 	if err := mt.Active.Add([]byte("g"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	if err := mt.Active.Add([]byte("aad"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("data3"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 
-	if err := mt.Active.Add([]byte("aaa"), []byte("val")); err != nil {
+	if err := mt.Active.Add([]byte("data9"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
 	if err := mt.Active.Add([]byte("c"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	// if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("e"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
+	if err := mt.Active.Add([]byte("k"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data4"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("i"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 
-	// if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
+	if err := mt.Active.Add([]byte("data54"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 	// if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
 	// 	fmt.Println(err)
 	// }
@@ -206,11 +206,6 @@ func testing() {
 func put() bool {
 	var key string
 	fmt.Print("\nUnesite kljuc:")
-	//	<<<<<<< HEAD
-	//	fmt.Print("\nUnesite kljuc: ")
-	//=======
-	//	fmt.Print("\nUnesite kljuc:")
-	//>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	n, err := fmt.Scanf("%s\n", &key)
 	if err != nil || n != 1 {
 		return false
@@ -218,11 +213,6 @@ func put() bool {
 
 	var val []byte
 	fmt.Print("Unesite vrijednost: ")
-	//<<<<<<< HEAD
-	//	fmt.Print("Unesite vrijednost: ")
-	//=======
-	//	fmt.Print("Unesite vrijednost:")
-	//>>>>>>> 74927af1c413fc2d6b93c63f2d2bc5f5adc76379
 	_, err = fmt.Scanf("%s\n", &val)
 	if err != nil {
 		return false
@@ -241,7 +231,6 @@ func put() bool {
 }
 
 func get() (container.DataNode, error) {
-	// TODO: provjeriti treba li vracati tomstone == 1 element
 	var key string
 	fmt.Print("\nUnesite kljuc: ")
 	n, err := fmt.Scanf("%s\n", &key)
@@ -312,11 +301,8 @@ func list() ([]container.DataNode, error) {
 		retVal = append(retVal, ret...)
 	}
 
-	// If not found in memtable
-	// ovde mi upadamo
-	//found, ret, err := Finder.PrefixScan([]byte(key))
+	// Append from SSTables
 	found, ret, err := lsmt.Active.PrefixScan([]byte(key))
-	fmt.Println("Ret: ", ret)
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -347,14 +333,13 @@ func rangeScan() ([]container.DataNode, error) {
 	}
 
 	var retVal []container.DataNode
-
+	// Get everything from mem
 	ret := mt.Active.RangeScan(minKey, maxKey)
 	if ret != nil {
 		retVal = append(retVal, ret...)
 	}
 
-	//ovde mi upadamo
-	//found, ret, err := Finder.RangeScan([]byte(minKey), []byte(maxKey))
+	// Get it all from SSTables
 	found, ret, err := lsmt.Active.RangeScan([]byte(minKey), []byte(maxKey))
 	if err != nil {
 		return nil, err

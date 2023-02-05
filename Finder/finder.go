@@ -123,35 +123,30 @@ func PrefixScan(key []byte, generation uint32) (bool, []container.DataNode, erro
 		indexFile, _ := os.OpenFile(filenames["index"], os.O_RDONLY, 0600)
 		summaryFile, _ := os.OpenFile(filenames["summary"], os.O_RDONLY, 0600)
 
-		first, last, err := SSTable.ReadFirstLast(summaryFile, 0)
+		// Izbrisao provjeru sa first-last jer kada se merguju fajlovi first-last imaju po byte samo i neuporedivo je da imaju prefix
+		summary, err := SSTable.ReadSummary(summaryFile, 0)
 		if err != nil {
 			return false, nil, err
 		}
-		if (bytes.Compare(key, first) == 0 || bytes.Compare(key, first) == 1) && (bytes.Compare(key, last) == 0 || bytes.Compare(key, last) == -1) {
-			summary, err := SSTable.ReadSummary(summaryFile, 0)
+		offsets := summary.FindPrefixKeys(key)
+		fmt.Println(offsets)
+		var dataPositions []int64
+		var foundRecord *SSTable.Record
+		for i := range offsets {
+			dataPositions = []int64{}
+			dataPositions, err = SSTable.FindIDSegments(key, indexFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
 			if err != nil {
-				return false, nil, err
+				return true, retVal, err
 			}
-			offsets := summary.FindPrefixKeys(key)
-			var dataPositions []int64
-			var foundRecord *SSTable.Record
-			for i := range offsets {
-				dataPositions = []int64{}
-				dataPositions, err = SSTable.FindIDSegments(key, indexFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
+			for j := range dataPositions {
+				foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
 				if err != nil {
 					return true, retVal, err
 				}
-				for j := range dataPositions {
-					foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
-					if err != nil {
-						return true, retVal, err
-					}
-					retVal = append(retVal, foundRecord)
-				}
+				retVal = append(retVal, foundRecord)
 			}
-			return true, retVal, nil
 		}
-		return false, nil, nil
+		return true, retVal, nil
 	} else {
 
 		dataFile, _ := os.OpenFile("usertable-0-.db", os.O_RDONLY, 0600)
@@ -200,38 +195,30 @@ func RangeScan(minKey []byte, maxKey []byte, generation uint32) (bool, []contain
 		indexFile, _ := os.OpenFile(filenames["index"], os.O_RDONLY, 0600)
 		summaryFile, _ := os.OpenFile(filenames["summary"], os.O_RDONLY, 0600)
 
-		first, last, err := SSTable.ReadFirstLast(summaryFile, 0)
+		// Brisemo provjeru sa first last iz istog razloga kao kod prefiksa
+		summary, err := SSTable.ReadSummary(summaryFile, 0)
 		if err != nil {
-			fmt.Println("err1")
+			fmt.Println("err2")
 			return false, nil, err
 		}
-		if bytes.Compare(minKey, last) <= 0 && bytes.Compare(maxKey, first) >= 0 {
-			summary, err := SSTable.ReadSummary(summaryFile, 0)
+		offsets := summary.FindRangeKeys(minKey, maxKey)
+		var dataPositions []int64
+		var foundRecord *SSTable.Record
+		for i := range offsets {
+			dataPositions = []int64{}
+			dataPositions, err = SSTable.FindRangeIDSegments(minKey, maxKey, indexFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
 			if err != nil {
-				fmt.Println("err2")
-				return false, nil, err
+				return true, retVal, err
 			}
-			offsets := summary.FindRangeKeys(minKey, maxKey)
-			var dataPositions []int64
-			var foundRecord *SSTable.Record
-			for i := range offsets {
-				dataPositions = []int64{}
-				dataPositions, err = SSTable.FindRangeIDSegments(minKey, maxKey, indexFile, offsets[i], config.SSTABLE_SEGMENT_SIZE)
+			for j := range dataPositions {
+				foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
 				if err != nil {
 					return true, retVal, err
 				}
-				for j := range dataPositions {
-					foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
-					if err != nil {
-						return true, retVal, err
-					}
-					retVal = append(retVal, foundRecord)
-				}
+				retVal = append(retVal, foundRecord)
 			}
-			return true, retVal, nil
 		}
-		fmt.Println("err3")
-		return false, nil, nil
+		return true, retVal, nil
 	} else {
 		dataFile, _ := os.OpenFile("usertable-0-.db", os.O_RDONLY, 0600)
 		head, _ := SSTable.ReadHead(dataFile)

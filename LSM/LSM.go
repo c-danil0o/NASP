@@ -118,29 +118,17 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	var found bool
 	var err error
 	var retVal []container.DataNode
-	var tempRetVal []container.DataNode
+	var aux []container.DataNode
 	current := lsm.nodes
-	var foundVals map[string]container.DataNode
 	for current != nil {
 		if current.sstG != -1 {
-			fmt.Println("Upalo je unutra")
-			fmt.Println(current.sstG)
-			found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
-			//fmt.Println(tempRetVal)
-			//fmt.Println(current.sstG)
-			if found {
-				for _, v := range tempRetVal {
-					_, ok := foundVals[string(v.Key())]
-					if !ok {
-						foundVals[string(v.Key())] = v
-					}
-				}
+			found, aux, err = Finder.PrefixScan(key, uint32(current.sstG))
+			if err != nil {
+				return false, retVal, err
 			}
+			retVal = append(retVal, aux...)
 		}
 		current = current.next
-	}
-	for _, k := range foundVals {
-		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -149,25 +137,17 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	var found bool
 	var err error
 	var retVal []container.DataNode
-	var tempRetVal []container.DataNode
+	var aux []container.DataNode
 	current := lsm.nodes
-	var foundVals map[string]container.DataNode
 	for current != nil {
 		if current.sstG != -1 {
-			found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
-			if found {
-				for _, v := range tempRetVal {
-					_, ok := foundVals[string(v.Key())]
-					if !ok {
-						foundVals[string(v.Key())] = v
-					}
-				}
+			found, aux, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
+			if err != nil {
+				return false, retVal, err
 			}
-			current = current.next
+			retVal = append(retVal, aux...)
 		}
-	}
-	for _, k := range foundVals {
-		retVal = append(retVal, k)
+		current = current.next
 	}
 	return found, retVal, err
 }
