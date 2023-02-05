@@ -48,7 +48,8 @@ func menu() {
 		fmt.Scanln(&choice)
 		if choice == 0 {
 			fmt.Println("Izlaz iz aplikacije...")
-			err := lsmt.Active.Serialize()
+			err := mt.Flush(&mt.Active)
+			err = lsmt.Active.Serialize()
 			if err != nil {
 				return
 			}
