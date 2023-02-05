@@ -335,13 +335,11 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 func (lsmt *LSMTree) GetNextGeneration() int {
 	var gen int = -1
 	current := lsmt.nodes
-	fmt.Print("prvikkk - ", current, "\n")
 	for gen == -1 && current != nil {
 		gen = current.sstG
 		current = current.next
 	}
 	if gen == -1 {
-		fmt.Println("dwjaidjiawijawd\n\n")
 		return 0
 	} else {
 		return gen + 1

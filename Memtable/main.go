@@ -1,8 +1,6 @@
 package memtable
 
 import (
-	"fmt"
-
 	config "github.com/c-danil0o/NASP/Config"
 	lsmt "github.com/c-danil0o/NASP/LSM"
 	sst "github.com/c-danil0o/NASP/SSTable"
@@ -14,7 +12,6 @@ var Generation uint32
 
 func Init() {
 	Generation = uint32(lsmt.Active.GetNextGeneration())
-	fmt.Println("generation:", Generation)
 	Active = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
 	Second = *CreateMemtable(config.MEMTABLE_CAPACITY, config.MEMTABLE_THRESHOLD, config.MEMTABLE_STRUCTURE)
 }

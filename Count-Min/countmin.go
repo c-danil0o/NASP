@@ -110,7 +110,11 @@ func Menu() {
 				var val string
 				fmt.Println("Unesite vrednost koju zelite da ubacite u CMS: ")
 				fmt.Scanf("%s\n", &val)
-				c.add([]byte(val), pos)
+				if c.add([]byte(val), pos) {
+					fmt.Print("Uspjesno ste dodali vrijednost u CMS.")
+				} else {
+					fmt.Println("Doslo je do greske. Pokusajte ponovo.")
+				}
 			}
 		case 3:
 			// Entering key and converting to [16]byte
