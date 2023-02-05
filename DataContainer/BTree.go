@@ -211,22 +211,22 @@ func (tree *BTree) Delete(key []byte) bool {
 	return false
 }
 
-func (tree *BTree) dataTraverse(n *Node, data *[]Element) {
+func (tree *BTree) dataTraverse(n *Node, data *[]DataNode) {
 	if n.leaf {
 		for _, k := range n.keys {
-			*data = append(*data, *k)
+			*data = append(*data, k)
 		}
 	} else {
 		for i := 0; i < len(n.keys); i++ {
 			tree.dataTraverse(n.children[i], data)
-			*data = append(*data, *n.keys[i])
+			*data = append(*data, n.keys[i])
 		}
 		tree.dataTraverse(n.children[len(n.keys)], data)
 	}
 }
 
-func (tree *BTree) GetSortedData() []Element {
-	var data []Element
+func (tree *BTree) GetSortedData() []DataNode {
+	var data []DataNode
 
 	if tree.root == nil {
 		return data
@@ -236,8 +236,8 @@ func (tree *BTree) GetSortedData() []Element {
 	return data
 }
 
-func (tree *BTree) PrefixScan(key string) []DataNode {
-	var data []Element
+func (tree *BTree) PrefixScan(key []byte) []DataNode {
+	var data []DataNode
 	tree.dataTraverse(tree.root, &data)
 
 	var retVal []DataNode
@@ -246,7 +246,7 @@ func (tree *BTree) PrefixScan(key string) []DataNode {
 	for {
 		if i == len(data) {
 			return retVal
-		} else if bytes.HasPrefix(data[i].key, []byte(key)) {
+		} else if bytes.HasPrefix(data[i].Key(), []byte(key)) {
 			break
 		} else {
 			i++
@@ -254,8 +254,8 @@ func (tree *BTree) PrefixScan(key string) []DataNode {
 	}
 
 	// Appending everything until first element that doesnt have this prefix
-	for bytes.HasPrefix(data[i].key, []byte(key)) {
-		retVal = append(retVal, &data[i])
+	for bytes.HasPrefix(data[i].Key(), []byte(key)) {
+		retVal = append(retVal, data[i])
 		i++
 	}
 
@@ -263,7 +263,7 @@ func (tree *BTree) PrefixScan(key string) []DataNode {
 }
 
 func (tree *BTree) RangeScan(min []byte, max []byte) []DataNode {
-	var data []Element
+	var data []DataNode
 	tree.dataTraverse(tree.root, &data)
 
 	var retVal []DataNode
@@ -272,7 +272,7 @@ func (tree *BTree) RangeScan(min []byte, max []byte) []DataNode {
 	for {
 		if i == len(data) {
 			return retVal
-		} else if bytes.Compare(data[i].key, min) >= 0 && bytes.Compare(data[i].key, max) <= 0 {
+		} else if bytes.Compare(data[i].Key(), min) >= 0 && bytes.Compare(data[i].Key(), max) <= 0 {
 			break
 		} else {
 			i++
@@ -280,8 +280,8 @@ func (tree *BTree) RangeScan(min []byte, max []byte) []DataNode {
 	}
 
 	// Appending everything until first element that isnt in this range
-	for bytes.Compare(data[i].key, min) >= 0 && bytes.Compare(data[i].key, max) <= 0 {
-		retVal = append(retVal, &data[i])
+	for bytes.Compare(data[i].Key(), min) >= 0 && bytes.Compare(data[i].Key(), max) <= 0 {
+		retVal = append(retVal, data[i])
 		i++
 	}
 
