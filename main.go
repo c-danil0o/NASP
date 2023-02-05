@@ -14,6 +14,7 @@ import (
 	hll "github.com/c-danil0o/NASP/HyperLogLog"
 	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
+	tkb "github.com/c-danil0o/NASP/TokenBucket"
 	wal "github.com/c-danil0o/NASP/WAL"
 )
 
@@ -45,105 +46,117 @@ func menu() {
 
 		var choice int
 		fmt.Scanln(&choice)
-
-		switch choice {
-		case 0:
+		if choice == 0 {
 			fmt.Println("Izlaz iz aplikacije...")
 			err := lsmt.Active.Serialize()
 			if err != nil {
 				return
 			}
 			os.Exit(0)
-		case 1:
-			if !put() {
-				errorMsg()
-			} else {
-				fmt.Println("Uspjesno ste dodali zapis.")
-			}
-		case 2:
-			if record, err := get(); err == nil {
-				if record != nil {
-					fmt.Printf("Key: %s\n", record.Key())
-					fmt.Printf("Value: %s\n", record.Value())
-					fmt.Printf("Timestamp: %d\n", record.Timestamp())
-					fmt.Printf("Tombstone: %d\n", record.Tombstone())
-				} else {
-					fmt.Println("Trazeni rekord nije pronadjen.")
+		}
+		if tkb.Active.IsReady() {
+			switch choice {
+			case 0:
+				fmt.Println("Izlaz iz aplikacije...")
+				err := lsmt.Active.Serialize()
+				if err != nil {
+					return
 				}
-			} else {
-				errorMsg()
-			}
-		case 3:
-			if delete() {
-				fmt.Println("Uneseni rekord je uspjesno izbrisan.")
-			}
-		case 4:
-			resultsPerPage, viewPage := getPaginationInfo()
-			if res, err := list(); err == nil {
-				fmt.Println(res)
-				if res != nil {
-					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
-						if int(i) >= len(res) {
-							if i == viewPage*resultsPerPage {
-								fmt.Println("Nema rezultata na ovoj stranici.")
-							}
-							break
-						}
-						fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
-						fmt.Printf("Key: %s\n", res[i].Key())
-						fmt.Printf("Value: %s\n", res[i].Value())
-						fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
-						fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+				os.Exit(0)
+			case 1:
+				if !put() {
+					errorMsg()
+				} else {
+					fmt.Println("Uspjesno ste dodali zapis.")
+				}
+			case 2:
+				if record, err := get(); err == nil {
+					if record != nil {
+						fmt.Printf("Key: %s\n", record.Key())
+						fmt.Printf("Value: %s\n", record.Value())
+						fmt.Printf("Timestamp: %d\n", record.Timestamp())
+						fmt.Printf("Tombstone: %d\n", record.Tombstone())
+					} else {
+						fmt.Println("Trazeni rekord nije pronadjen.")
 					}
-
-					fmt.Print("\n---Kraj ispisa---\n\n")
-				} else {
-					fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
-				}
-			} else {
-				errorMsg()
-			}
-		case 5:
-			resultsPerPage, viewPage := getPaginationInfo()
-			if res, err := rangeScan(); err == nil {
-				if res != nil {
-					fmt.Println("\n---Rezultati pretrage---")
-					for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
-						if int(i) >= len(res) {
-							if i == viewPage*resultsPerPage {
-								fmt.Println("Nema rezultata na ovoj stranici.")
-							}
-							break
-						}
-						fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
-						fmt.Printf("Key: %s\n", res[i].Key())
-						fmt.Printf("Value: %s\n", res[i].Value())
-						fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
-						fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
-					}
-					fmt.Print("\n---Kraj ispisa---\n\n")
-				} else {
-					fmt.Println("Ne postoji rekord koji pripada zadatom range-u.")
-				}
-			} else {
-				if err == fmt.Errorf("minKey > maxKey") {
-					fmt.Println("Uneseni minimalni kljuc mora biti manji od unesenog veceg kljuca.")
 				} else {
 					errorMsg()
 				}
+			case 3:
+				if delete() {
+					fmt.Println("Uneseni rekord je uspjesno izbrisan.")
+				}
+			case 4:
+				resultsPerPage, viewPage := getPaginationInfo()
+				if res, err := list(); err == nil {
+					fmt.Println(res)
+					if res != nil {
+						fmt.Println("\n---Rezultati pretrage---")
+						for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
+							if int(i) >= len(res) {
+								if i == viewPage*resultsPerPage {
+									fmt.Println("Nema rezultata na ovoj stranici.")
+								}
+								break
+							}
+							fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
+							fmt.Printf("Key: %s\n", res[i].Key())
+							fmt.Printf("Value: %s\n", res[i].Value())
+							fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
+							fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+						}
+
+						fmt.Print("\n---Kraj ispisa---\n\n")
+					} else {
+						fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
+					}
+				} else {
+					errorMsg()
+				}
+			case 5:
+				resultsPerPage, viewPage := getPaginationInfo()
+				if res, err := rangeScan(); err == nil {
+					if res != nil {
+						fmt.Println("\n---Rezultati pretrage---")
+						for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
+							if int(i) >= len(res) {
+								if i == viewPage*resultsPerPage {
+									fmt.Println("Nema rezultata na ovoj stranici.")
+								}
+								break
+							}
+							fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
+							fmt.Printf("Key: %s\n", res[i].Key())
+							fmt.Printf("Value: %s\n", res[i].Value())
+							fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
+							fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+						}
+						fmt.Print("\n---Kraj ispisa---\n\n")
+					} else {
+						fmt.Println("Ne postoji rekord koji pripada zadatom range-u.")
+					}
+				} else {
+					if err == fmt.Errorf("minKey > maxKey") {
+						fmt.Println("Uneseni minimalni kljuc mora biti manji od unesenog veceg kljuca.")
+					} else {
+						errorMsg()
+					}
+				}
+			case 6:
+				testing()
+			case 7:
+				cms.Menu()
+			case 8:
+				hll.Menu()
+			case 9:
+				wal.Active.PrintLogs()
+			default:
+				fmt.Println("Neispravan unos. Pokusajte ponovo.")
 			}
-		case 6:
-			testing()
-		case 7:
-			cms.Menu()
-		case 8:
-			hll.Menu()
-		case 9:
-			wal.Active.PrintLogs()
-		default:
-			fmt.Println("Neispravan unos. Pokusajte ponovo.")
+		} else {
+			fmt.Println("Morate sacekati, sistem je opterecen")
 		}
+
 		fmt.Println()
 	}
 }
@@ -404,6 +417,8 @@ func main() {
 	wal.Init()
 	mt.Init()
 	lru.Init()
+
+	tkb.CreateTokenBucket()
 
 	menu()
 }
