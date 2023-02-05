@@ -25,7 +25,7 @@ func CreateMemtable(capacity int, threshold int, structure int) *Memtable {
 	if structure == 0 {
 		data = container.NewSkipList()
 	} else if structure == 1 {
-		//data = *b.newBtree()
+		data = container.CreateBTree(4)
 	}
 	return &Memtable{
 		capacity:  capacity,
