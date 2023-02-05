@@ -90,51 +90,54 @@ func menu() {
 				resultsPerPage, viewPage := getPaginationInfo()
 				if res, err := list(); err == nil {
 					fmt.Println(res)
-					if res != nil {
-						fmt.Println("\n---Rezultati pretrage---")
-						for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
-							if int(i) >= len(res) {
-								if i == viewPage*resultsPerPage {
-									fmt.Println("Nema rezultata na ovoj stranici.")
-								}
-								break
-							}
-							fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
-							fmt.Printf("Key: %s\n", res[i].Key())
-							fmt.Printf("Value: %s\n", res[i].Value())
-							fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
-							fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
-						}
-
-						fmt.Print("\n---Kraj ispisa---\n\n")
-					} else {
-						fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
-					}
+					Pagination(res, resultsPerPage, viewPage)
+					//if res != nil {
+					//	fmt.Println("\n---Rezultati pretrage---")
+					//	for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
+					//		if int(i) >= len(res) {
+					//			if i == viewPage*resultsPerPage {
+					//				fmt.Println("Nema rezultata na ovoj stranici.")
+					//			}
+					//			break
+					//		}
+					//		fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
+					//		fmt.Printf("Key: %s\n", res[i].Key())
+					//		fmt.Printf("Value: %s\n", res[i].Value())
+					//		fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
+					//		fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+					//	}
+					//
+					//	fmt.Print("\n---Kraj ispisa---\n\n")
+					//} else {
+					//	fmt.Println("Ne postoji rekord cijem kljucu je uneseni string prefiks.")
+					//}
 				} else {
 					errorMsg()
 				}
 			case 5:
 				resultsPerPage, viewPage := getPaginationInfo()
 				if res, err := rangeScan(); err == nil {
-					if res != nil {
-						fmt.Println("\n---Rezultati pretrage---")
-						for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
-							if int(i) >= len(res) {
-								if i == viewPage*resultsPerPage {
-									fmt.Println("Nema rezultata na ovoj stranici.")
-								}
-								break
-							}
-							fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
-							fmt.Printf("Key: %s\n", res[i].Key())
-							fmt.Printf("Value: %s\n", res[i].Value())
-							fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
-							fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
-						}
-						fmt.Print("\n---Kraj ispisa---\n\n")
-					} else {
-						fmt.Println("Ne postoji rekord koji pripada zadatom range-u.")
-					}
+					Pagination(res, resultsPerPage, viewPage)
+					//if res != nil {
+					//	fmt.Println("\n---Rezultati pretrage---")
+					//	for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
+					//		if int(i) >= len(res) {
+					//			if i == viewPage*resultsPerPage {
+					//				fmt.Println("Nema rezultata na ovoj stranici.")
+					//			}
+					//			break
+					//		}
+					//		fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
+					//		fmt.Printf("Key: %s\n", res[i].Key())
+					//		fmt.Printf("Value: %s\n", res[i].Value())
+					//		fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
+					//		fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+					//	}
+					//	fmt.Print("\n---Kraj ispisa---\n\n")
+					//} else {
+					//	fmt.Println("Ne postoji rekord koji pripada zadatom range-u.")
+					//}
+
 				} else {
 					if err == fmt.Errorf("minKey > maxKey") {
 						fmt.Println("Uneseni minimalni kljuc mora biti manji od unesenog veceg kljuca.")
@@ -161,12 +164,56 @@ func menu() {
 	}
 }
 
+func Pagination(res []container.DataNode, resultsPerPage uint32, viewPage uint32) {
+	choice := 5
+	if res != nil {
+		fmt.Println("\n---Rezultati pretrage---")
+		for true {
+			for i := viewPage * resultsPerPage; i < viewPage*resultsPerPage+resultsPerPage; i++ {
+				if int(i) >= len(res) {
+					if i == viewPage*resultsPerPage {
+						fmt.Println("Nema rezultata na ovoj stranici.")
+					}
+					break
+				}
+				fmt.Println("\n" + strconv.Itoa(int(i+1)) + ".rekord:")
+				fmt.Printf("Key: %s\n", res[i].Key())
+				fmt.Printf("Value: %s\n", res[i].Value())
+				fmt.Printf("Timestamp: %d\n", res[i].Timestamp())
+				fmt.Printf("Tombstone: %d\n", res[i].Tombstone())
+			}
+			fmt.Print("\n---Kraj ispisa---\n\n")
+			fmt.Println("Da li zelite da nastavite da gledate rezultate?")
+			fmt.Print("1. Da\t2.Ne ----> ")
+			fmt.Scanf("%d\n", &choice)
+			if choice == 1 {
+				fmt.Println("Da li zelite da pogledate prethodnu(1) ili narednu(2) stranicu?")
+				fmt.Print("1. Prethodna\t2.Naredna ----> ")
+				fmt.Scanf("%d\n", &choice)
+				if choice == 1 {
+					if viewPage == 0 {
+						viewPage = 0
+					} else {
+						viewPage = viewPage - 1
+					}
+				} else {
+					viewPage = viewPage + 1
+				}
+			} else {
+				break
+			}
+		}
+	} else {
+		fmt.Println("Nema rezultata pretrage.")
+	}
+}
+
 func getPaginationInfo() (uint32, uint32) {
 	var resultsPerPage int
 	var viewPage int
-	fmt.Println("\nUnesite koliko zelite rezultata da se prikaze po stranici : ")
+	fmt.Print("\nUnesite koliko zelite rezultata da se prikaze po stranici : ")
 	fmt.Scanf("%d\n", &resultsPerPage)
-	fmt.Println("Unesite koju stranicu zelite da pogledate : ")
+	fmt.Print("Unesite koju stranicu zelite da pogledate : ")
 	fmt.Scanf("%d\n", &viewPage)
 	return uint32(resultsPerPage), uint32(viewPage - 1)
 }

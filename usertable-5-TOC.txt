@@ -1,5 +1,0 @@
-data:usertable-5-Data.db
-index:usertable-5-Index.db
-filter:usertable-5-Filter.db
-summary:usertable-5-Summary.db
-metadata:usertable-5-Metadata.db
