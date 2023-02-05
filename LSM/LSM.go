@@ -33,8 +33,8 @@ var Active LSMTree
 func Init() {
 	Active = *NewLSMTree()
 	Active.DeserializeLSMT()
-	fmt.Println(Active.GetNextGeneration())
-	//memtable.Generation = uint32(Active.GetNextGeneration())
+	// fmt.Println(Active.GetNextGeneration())
+	// memtable.Generation = uint32(Active.GetNextGeneration())
 }
 
 // mem memtable.Memtable
@@ -70,7 +70,7 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			//os.removefiles(node.sstg)
 			//os.removefiles(sstable)
 			if err != nil {
-				//return err
+				return err
 			}
 
 			if temp >= config.MEMTABLE_THRESHOLD*int(math.Pow(2, float64(node.lvl))) {
@@ -321,8 +321,8 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 				return err
 			}
 		}
-		fmt.Println(int(temp1))
-		fmt.Print(int(temp2))
+		// fmt.Println(int(temp1))
+		// fmt.Print(int(temp2))
 		current.sstG = int(temp1)
 		current.lvl = int(temp2)
 		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
@@ -335,11 +335,13 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 func (lsmt *LSMTree) GetNextGeneration() int {
 	var gen int = -1
 	current := lsmt.nodes
+	fmt.Print("prvikkk - ", current, "\n")
 	for gen == -1 && current != nil {
 		gen = current.sstG
 		current = current.next
 	}
 	if gen == -1 {
+		fmt.Println("dwjaidjiawijawd\n\n")
 		return 0
 	} else {
 		return gen + 1

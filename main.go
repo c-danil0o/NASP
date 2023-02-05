@@ -6,10 +6,12 @@ import (
 	"os"
 	"strconv"
 
+	config "github.com/c-danil0o/NASP/Config"
 	lsmt "github.com/c-danil0o/NASP/LSM"
 
-	countmin "github.com/c-danil0o/NASP/Count-Min"
+	cms "github.com/c-danil0o/NASP/Count-Min"
 	container "github.com/c-danil0o/NASP/DataContainer"
+	hll "github.com/c-danil0o/NASP/HyperLogLog"
 	lru "github.com/c-danil0o/NASP/LRU"
 	mt "github.com/c-danil0o/NASP/Memtable"
 	wal "github.com/c-danil0o/NASP/WAL"
@@ -35,7 +37,8 @@ func menu() {
 		fmt.Println("4. List")
 		fmt.Println("5. Range Scan")
 		fmt.Println("6. Input SSTable tests")
-		fmt.Println("7. CMS")
+		fmt.Println("7. Count-Min Sketch")
+		fmt.Println("8. HyperLogLog")
 		fmt.Println("0. Izlaz")
 		fmt.Print(">> ")
 
@@ -128,7 +131,9 @@ func menu() {
 		case 6:
 			testing()
 		case 7:
-
+			cms.Menu()
+		case 8:
+			hll.Menu()
 		default:
 			fmt.Println("Neispravan unos. Pokusajte ponovo.")
 		}
@@ -362,15 +367,13 @@ func rangeScan() ([]container.DataNode, error) {
 }
 
 func main() {
-	countmin.CmsMeni()
-	// config.ReadConfig("config.json")
+	config.ReadConfig("config.json")
 
 	lsmt.Init()
 	wal.Init()
 	mt.Init()
 	lru.Init()
+	// lsmt.NewLSMTree()
 
-	////lsmt := LSM.NewLSMTree()
-	//lsm.NewLSMTree()
-	// menu()
+	menu()
 }

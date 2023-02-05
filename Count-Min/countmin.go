@@ -39,15 +39,15 @@ func createCMS(key [16]byte, epsilon float64, delta float64) *CMS {
 	}
 }
 
-func CmsMeni() {
+func Menu() {
 	file, _ := os.OpenFile("cms.bin", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	file.Close()
 	for {
-		fmt.Println("\n1. Create new CMS")
-		fmt.Println("2. Add element to CMS")
-		fmt.Println("3. Check for element in CMS")
+		fmt.Println("\n1. Kreiranje novog CMS")
+		fmt.Println("2. Dodavanje elementa u CMS")
+		fmt.Println("3. Provjera elementa u CMS")
 		fmt.Println("0. Izlaz")
-		fmt.Println("Select an option:")
+		fmt.Println("Opcija:")
 		var choice int
 		n, err := fmt.Scanf("%d\n", &choice)
 		if n != 1 || err != nil {
@@ -75,12 +75,12 @@ func CmsMeni() {
 			}
 
 			cms := createCMS(key, 0.1, 0.9)
-			found, _ := cms.KeyExists()
+			found, _ := cms.keyExists()
 			if found {
 				fmt.Println("Vec postoji CMS sa tim kljucem.")
 			} else {
 				// Writing into file
-				if err := cms.Serialize(); err == nil {
+				if err := cms.serialize(); err == nil {
 					fmt.Println("Uspesno ste kreirali CMS.")
 				} else {
 					fmt.Print(err)
@@ -103,7 +103,7 @@ func CmsMeni() {
 			}
 
 			c := CMS{key: key}
-			ok, pos := c.KeyExists()
+			ok, pos := c.keyExists()
 			if !ok {
 				fmt.Println("Ne postoji CMS sa ovim kljucem.")
 			} else {
@@ -129,7 +129,7 @@ func CmsMeni() {
 			}
 
 			c := CMS{key: key}
-			ok, _ := c.KeyExists()
+			ok, _ := c.keyExists()
 			if !ok {
 				fmt.Println("Ne postoji CMS sa ovim kljucem.")
 			} else {
@@ -137,7 +137,6 @@ func CmsMeni() {
 				fmt.Println("Unesite vrednost koju zelite da proverite: ")
 				fmt.Scanln(&val)
 				fmt.Println("Pojavljuje se:", c.get([]byte(val)), "puta.")
-				//TODO: sta sa rez?
 			}
 		default:
 			fmt.Println("Neispravan unos. Pokusajte ponovo")
@@ -220,7 +219,7 @@ func (cms *CMS) get(value []byte) int32 {
 }
 
 // returns found? and offset where that cms starts in binary file for editing
-func (cms *CMS) KeyExists() (bool, uint64) {
+func (cms *CMS) keyExists() (bool, uint64) {
 	file, err := os.OpenFile("cms.bin", os.O_RDONLY, 0600)
 	defer file.Close()
 	if err != nil {
@@ -292,7 +291,7 @@ func (cms *CMS) KeyExists() (bool, uint64) {
 	return false, 0
 }
 
-func (cms *CMS) Serialize() error {
+func (cms *CMS) serialize() error {
 	file, err := os.OpenFile("cms.bin", os.O_WRONLY|os.O_APPEND, 0600)
 	defer file.Close()
 	if err != nil {
@@ -300,7 +299,7 @@ func (cms *CMS) Serialize() error {
 	}
 
 	// Writing record
-	if err := cms.Write(file); err != nil {
+	if err := cms.write(file); err != nil {
 		return err
 	}
 
@@ -313,7 +312,7 @@ func (cms *CMS) Serialize() error {
 }
 
 // Writing single key-cms record
-func (cms *CMS) Write(writer io.Writer) error {
+func (cms *CMS) write(writer io.Writer) error {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, cms.key)
 	binary.Write(&buf, binary.BigEndian, cms.m)
