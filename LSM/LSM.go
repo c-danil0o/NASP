@@ -98,14 +98,16 @@ func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
 	var err error
 	var retVal container.DataNode
 	current := lsm.nodes
-	for current.next != nil {
-		found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
-		if found {
-			return found, retVal, err
+	for current != nil {
+		if current.sstG != -1 {
+			found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
+			if found {
+				return found, retVal, err
+			}
 		}
 		current = current.next
 	}
-	found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
+	//found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 	return found, retVal, err
 }
 
@@ -117,12 +119,18 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	current := lsm.nodes
 	var foundVals map[string]container.DataNode
 	for current != nil {
-		found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
-		if found {
-			for _, v := range tempRetVal {
-				_, ok := foundVals[string(v.Key())]
-				if !ok {
-					foundVals[string(v.Key())] = v
+		if current.sstG != -1 {
+			fmt.Println("Upalo je unutra")
+			fmt.Println(current.sstG)
+			found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
+			//fmt.Println(tempRetVal)
+			//fmt.Println(current.sstG)
+			if found {
+				for _, v := range tempRetVal {
+					_, ok := foundVals[string(v.Key())]
+					if !ok {
+						foundVals[string(v.Key())] = v
+					}
 				}
 			}
 		}
@@ -142,16 +150,18 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	current := lsm.nodes
 	var foundVals map[string]container.DataNode
 	for current != nil {
-		found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
-		if found {
-			for _, v := range tempRetVal {
-				_, ok := foundVals[string(v.Key())]
-				if !ok {
-					foundVals[string(v.Key())] = v
+		if current.sstG != -1 {
+			found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
+			if found {
+				for _, v := range tempRetVal {
+					_, ok := foundVals[string(v.Key())]
+					if !ok {
+						foundVals[string(v.Key())] = v
+					}
 				}
 			}
+			current = current.next
 		}
-		current = current.next
 	}
 	for _, k := range foundVals {
 		retVal = append(retVal, k)
@@ -197,12 +207,19 @@ func (lsmt *LSMTree) Serialize() error {
 	}
 	var buf bytes.Buffer
 	current := lsmt.nodes
+	fmt.Println("ITERACIJA")
 	for current != nil {
+		fmt.Print("SST generacija")
+		fmt.Println(current.sstG)
+		fmt.Print("LVL u stablu")
+		fmt.Println(current.lvl)
 		err = binary.Write(&buf, binary.BigEndian, int64(current.sstG))
 		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl))
+		fmt.Println(buf)
+		_, err = lsmtreeFile.Write(buf.Bytes())
 		current = current.next
 	}
-	_, err = lsmtreeFile.Write(buf.Bytes())
+
 	lsmtreeFile.Sync()
 
 	return err
@@ -222,26 +239,28 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 	var isize int64 = -1
 
 	lsmtreeFile.Seek(0, 0)
-	mybytes := make([]byte, unsafe.Sizeof(isize))
-	for true {
 
+	for true {
+		mybytes := make([]byte, unsafe.Sizeof(isize))
 		_, err = lsmtreeFile.Read(mybytes)
+		fmt.Println(mybytes)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			fmt.Println("EALO")
 			break
 		}
 		buf := bytes.NewBuffer(mybytes)
+		fmt.Println(buf)
 		val, err := binary.ReadVarint(buf)
 		if err == nil {
 			current.sstG = int(val)
 		}
-
-		_, err = lsmtreeFile.Read(mybytes)
+		mybytes2 := make([]byte, unsafe.Sizeof(isize))
+		_, err = lsmtreeFile.Read(mybytes2)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 
 			break
 		}
-		buf = bytes.NewBuffer(mybytes)
+		buf = bytes.NewBuffer(mybytes2)
 		val, err = binary.ReadVarint(buf)
 		if err == nil {
 			current.lvl = int(val)

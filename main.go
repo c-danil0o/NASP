@@ -143,7 +143,7 @@ func getPaginationInfo() (uint32, uint32) {
 	fmt.Scanf("%d\n", &resultsPerPage)
 	fmt.Println("Unesite koju stranicu zelite da pogledate : ")
 	fmt.Scanf("%d\n", &viewPage)
-	return uint32(resultsPerPage), uint32(viewPage)
+	return uint32(resultsPerPage), uint32(viewPage - 1)
 }
 
 func testing() {
