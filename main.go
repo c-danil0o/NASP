@@ -376,4 +376,6 @@ func main() {
 	// lsmt.NewLSMTree()
 
 	menu()
+
+	//  prolazi dok ne nadjes prvi koji jeste, kad nadjes kreni append, prvi koji nije stani
 }

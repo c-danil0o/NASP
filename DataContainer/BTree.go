@@ -166,11 +166,7 @@ func (tree *BTree) splitChild(x *Node, i int) {
 }
 
 func (tree *BTree) traverse(n *Node, num *int) {
-	for _, k := range n.keys {
-		if k.tombstone == 0 {
-			*num++
-		}
-	}
+	*num += len(n.keys)
 
 	for i := 0; i < len(n.children); i++ {
 		if !n.leaf {
@@ -218,16 +214,12 @@ func (tree *BTree) Delete(key []byte) bool {
 func (tree *BTree) dataTraverse(n *Node, data *[]Element) {
 	if n.leaf {
 		for _, k := range n.keys {
-			if k.tombstone == 0 {
-				*data = append(*data, *k)
-			}
+			*data = append(*data, *k)
 		}
 	} else {
 		for i := 0; i < len(n.keys); i++ {
 			tree.dataTraverse(n.children[i], data)
-			if n.keys[i].tombstone == 0 {
-				*data = append(*data, *n.keys[i])
-			}
+			*data = append(*data, *n.keys[i])
 		}
 		tree.dataTraverse(n.children[len(n.keys)], data)
 	}
@@ -242,4 +234,56 @@ func (tree *BTree) GetSortedData() []Element {
 	tree.dataTraverse(tree.root, &data)
 
 	return data
+}
+
+func (tree *BTree) PrefixScan(key string) []DataNode {
+	var data []Element
+	tree.dataTraverse(tree.root, &data)
+
+	var retVal []DataNode
+	var i int
+	// Getting to first element that has this prefix
+	for {
+		if i == len(data) {
+			return retVal
+		} else if bytes.HasPrefix(data[i].key, []byte(key)) {
+			break
+		} else {
+			i++
+		}
+	}
+
+	// Appending everything until first element that doesnt have this prefix
+	for bytes.HasPrefix(data[i].key, []byte(key)) {
+		retVal = append(retVal, &data[i])
+		i++
+	}
+
+	return retVal
+}
+
+func (tree *BTree) RangeScan(min []byte, max []byte) []DataNode {
+	var data []Element
+	tree.dataTraverse(tree.root, &data)
+
+	var retVal []DataNode
+	var i int
+	// Getting to first element that is in this range
+	for {
+		if i == len(data) {
+			return retVal
+		} else if bytes.Compare(data[i].key, min) >= 0 && bytes.Compare(data[i].key, max) <= 0 {
+			break
+		} else {
+			i++
+		}
+	}
+
+	// Appending everything until first element that isnt in this range
+	for bytes.Compare(data[i].key, min) >= 0 && bytes.Compare(data[i].key, max) <= 0 {
+		retVal = append(retVal, &data[i])
+		i++
+	}
+
+	return retVal
 }
