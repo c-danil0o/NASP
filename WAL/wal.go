@@ -64,14 +64,31 @@ func Init() { // *SegmentedWAL
 }
 
 func CreateSegmentedLog(aux int, max_segment_size int) *SegmentedWAL {
+	var ret SegmentedWAL
+	var err error
+
+	ret.SegmentCount = aux
+	ret.CurrentSize = 0
+	ret.SegmentSize = max_segment_size
+
 	// Open first file
-	file, err := os.OpenFile(WAL_STR+strconv.Itoa(aux)+LOG_STR, os.O_RDONLY, 0400)
+	ret.CurrentSegment, err = os.OpenFile(WAL_STR+strconv.Itoa(aux)+LOG_STR, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	fi, err := ret.CurrentSegment.Stat()
+	if err != nil {
+		fmt.Println(err)
+		return &ret
+	}
+
+	if fi.Size() == 0 {
+		return &ret
+	}
+
 	// Memory map the file
-	data, err := mmap.Map(file, mmap.RDONLY, 0)
+	data, err := mmap.Map(ret.CurrentSegment, mmap.RDONLY, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -87,15 +104,10 @@ func CreateSegmentedLog(aux int, max_segment_size int) *SegmentedWAL {
 		offset += record.recordSize()
 		counter++
 	}
-	file.Close()
 	data.Unmap()
 
-	return &SegmentedWAL{
-		CurrentSegment: nil,
-		SegmentCount:   aux,
-		CurrentSize:    counter,
-		SegmentSize:    max_segment_size,
-	}
+	ret.CurrentSize = counter
+	return &ret
 }
 
 func getCurrentSegment() (int, error) {
