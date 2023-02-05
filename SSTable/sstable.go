@@ -422,10 +422,10 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		size := make([]byte, 8)
 		dataFile.Write(size)
 		merkleBuffer := make([]Record, dataSize)
-		defer dataFile.Close()
-		defer indexFile.Close()
-		defer summaryFile.Close()
-		defer metadataFile.Close()
+		//defer dataFile.Close()
+		//defer indexFile.Close()
+		//defer summaryFile.Close()
+		//defer metadataFile.Close()
 		var offset uint64 = 8 // configure offset
 		var indexOffset uint64 = 0
 		var summarySize = int(math.Ceil(float64(dataSize) / float64(sstable.SegmentSize)))
@@ -521,11 +521,17 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 					if !record1.ReadNext(dataFile1) {
 						flush = 2
 					}
+					if !record2.ReadNext(dataFile2) {
+						flush = 1
+					}
 
 				} else {
 					writeRecord = record2
 					if !record2.ReadNext(dataFile2) {
 						flush = 1
+					}
+					if !record1.ReadNext(dataFile1) {
+						flush = 2
 					}
 				}
 			} else if cmp == -1 {
@@ -556,6 +562,10 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 			count++
 
 		}
+		dataFile.Seek(0, 0)
+		var bf bytes.Buffer
+		binary.Write(&bf, binary.BigEndian, int64(count))
+		dataFile.Write(bf.Bytes())
 		err = index.WriteIndex(indexFile)
 		if err != nil {
 			return err, 0
@@ -717,11 +727,17 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 					if !record1.ReadNextSingle(dataFile1, head1["index"]) {
 						flush = 2
 					}
+					if !record2.ReadNextSingle(dataFile2, head2["index"]) {
+						flush = 1
+					}
 
 				} else {
 					writeRecord = record2
 					if !record2.ReadNextSingle(dataFile2, head2["index"]) {
 						flush = 1
+					}
+					if !record1.ReadNextSingle(dataFile1, head1["index"]) {
+						flush = 2
 					}
 				}
 			} else if cmp == -1 {
@@ -773,6 +789,7 @@ func Merge(sst1gen int, sst2gen int, generation int) (error, int) {
 		dataFile.Seek(head["filter"], 0)
 		bloomsize, err := sstable.Bloom.Serialize(dataFile)
 		head["metadata"] = head["filter"] + bloomsize
+		head["size"] = int64(count)
 		if err != nil {
 			return err, 0
 		}
