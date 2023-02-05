@@ -122,7 +122,7 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	var retVal []container.DataNode
 	var tempRetVal []container.DataNode
 	current := lsm.nodes
-	var foundVals map[string]container.DataNode
+	foundVals := make(map[string]container.DataNode)
 	for current != nil {
 		if current.sstG != -1 {
 			found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
@@ -345,7 +345,7 @@ func (lsmt *LSMTree) GetNextGeneration() int {
 	for gen == -1 && current != nil {
 		gen = current.sstG
 		current = current.next
-		fmt.Println(gen)
+		//fmt.Println(gen)
 	}
 	if gen == -1 {
 		return 0
