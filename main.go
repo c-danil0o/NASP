@@ -49,6 +49,10 @@ func menu() {
 		switch choice {
 		case 0:
 			fmt.Println("Izlaz iz aplikacije...")
+			err := lsmt.Active.Serialize()
+			if err != nil {
+				return
+			}
 			os.Exit(0)
 		case 1:
 			if !put() {
@@ -193,15 +197,15 @@ func testing() {
 	if err := mt.Active.Add([]byte("data75"), []byte("val")); err != nil {
 		fmt.Println(err)
 	}
-	// if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
-	// 	fmt.Println(err)
-	// }
+	if err := mt.Active.Add([]byte("data79"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data80"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
+	if err := mt.Active.Add([]byte("data81"), []byte("val")); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("\nTest cases put successfully")
 	// fmt.Println(Finder.FindKey([]byte("z"), 2))
 }
@@ -254,6 +258,7 @@ func get() (container.DataNode, error) {
 	}
 
 	// If not found in memtable
+
 	found, retVal, err = lsmt.Active.FindKey([]byte(key))
 	if err != nil {
 		fmt.Println(err)

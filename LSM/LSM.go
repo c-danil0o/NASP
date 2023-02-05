@@ -66,6 +66,7 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			fmt.Println(node.sstG)
 			fmt.Println(SSTable)
 			fmt.Println(novaGen)
+			fmt.Println("======")
 			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
 			//os.removefiles(node.sstg)
 			//os.removefiles(sstable)
@@ -101,16 +102,14 @@ func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
 	var err error
 	var retVal container.DataNode
 	current := lsm.nodes
-	for current != nil {
-		if current.sstG != -1 {
-			found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
-			if found {
-				return found, retVal, err
-			}
+	for current.next != nil {
+		found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
+		if found {
+			return found, retVal, err
 		}
 		current = current.next
 	}
-	//found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
+	found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 	return found, retVal, err
 }
 
@@ -118,17 +117,23 @@ func (lsm *LSMTree) PrefixScan(key []byte) (bool, []container.DataNode, error) {
 	var found bool
 	var err error
 	var retVal []container.DataNode
-	var aux []container.DataNode
+	var tempRetVal []container.DataNode
 	current := lsm.nodes
+	var foundVals map[string]container.DataNode
 	for current != nil {
-		if current.sstG != -1 {
-			found, aux, err = Finder.PrefixScan(key, uint32(current.sstG))
-			if err != nil {
-				return false, retVal, err
+		found, tempRetVal, err = Finder.PrefixScan(key, uint32(current.sstG))
+		if found {
+			for _, v := range tempRetVal {
+				_, ok := foundVals[string(v.Key())]
+				if !ok {
+					foundVals[string(v.Key())] = v
+				}
 			}
-			retVal = append(retVal, aux...)
 		}
 		current = current.next
+	}
+	for _, k := range foundVals {
+		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -137,17 +142,23 @@ func (lsm *LSMTree) RangeScan(minKey []byte, maxKey []byte) (bool, []container.D
 	var found bool
 	var err error
 	var retVal []container.DataNode
-	var aux []container.DataNode
+	var tempRetVal []container.DataNode
 	current := lsm.nodes
+	var foundVals map[string]container.DataNode
 	for current != nil {
-		if current.sstG != -1 {
-			found, aux, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
-			if err != nil {
-				return false, retVal, err
+		found, tempRetVal, err = Finder.RangeScan(minKey, maxKey, uint32(current.sstG))
+		if found {
+			for _, v := range tempRetVal {
+				_, ok := foundVals[string(v.Key())]
+				if !ok {
+					foundVals[string(v.Key())] = v
+				}
 			}
-			retVal = append(retVal, aux...)
 		}
 		current = current.next
+	}
+	for _, k := range foundVals {
+		retVal = append(retVal, k)
 	}
 	return found, retVal, err
 }
@@ -182,7 +193,7 @@ func RemoveFiles(generation int32) error {
 
 }
 
-func (lsmt *LSMTree) Serialize1() error {
+func (lsmt *LSMTree) Serialize() error {
 	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	defer lsmtreeFile.Close()
 	if err != nil {
@@ -190,29 +201,18 @@ func (lsmt *LSMTree) Serialize1() error {
 	}
 	var buf bytes.Buffer
 	current := lsmt.nodes
-	fmt.Println("ITERACIJA")
 	for current != nil {
-		fmt.Print("SST generacija")
-		fmt.Println(current.sstG)
-		fmt.Print("LVL u stablu")
-		fmt.Println(current.lvl)
 		err = binary.Write(&buf, binary.BigEndian, int64(current.sstG))
-		_, err = lsmtreeFile.Write(buf.Bytes())
 		err = binary.Write(&buf, binary.BigEndian, int64(current.lvl))
-		//<<<<<<< HEAD
-		//		fmt.Println(buf)
-		//=======
-		//>>>>>>> 8c787e5f303ef57135790ea7defec99cb1dec409
-		_, err = lsmtreeFile.Write(buf.Bytes())
 		current = current.next
 	}
-
+	_, err = lsmtreeFile.Write(buf.Bytes())
 	lsmtreeFile.Sync()
 
 	return err
 }
 
-func (lsmt *LSMTree) Serialize() error {
+func (lsmt *LSMTree) Serialize1() error {
 	binFile, err := os.Create("LSMTree.bin")
 	if err != nil {
 		return err
@@ -220,12 +220,12 @@ func (lsmt *LSMTree) Serialize() error {
 	defer binFile.Close()
 	current := lsmt.nodes
 	for current != nil {
-		fmt.Println(current.sstG)
+		//fmt.Println(current.sstG)
 		err = binary.Write(binFile, binary.BigEndian, int64(current.sstG))
 		if err != nil {
 			return err
 		}
-		fmt.Println(current.lvl)
+		//fmt.Println(current.lvl)
 		err = binary.Write(binFile, binary.BigEndian, int64(current.lvl))
 		if err != nil {
 			return err
@@ -236,21 +236,61 @@ func (lsmt *LSMTree) Serialize() error {
 	return nil
 }
 
-func (lsmt *LSMTree) GetNextGeneration() int {
-	var gen int = -1
+func (lsmt *LSMTree) DeserializeLSMT() error {
+
+	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_RDONLY, 0600)
+	//lsmt := LSMTree{max: config.LSM_DEPTH, nodes: nil}
+	if err != nil {
+		return err
+	}
+	defer lsmtreeFile.Close()
+
+	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
 	current := lsmt.nodes
-	for gen == -1 && current != nil {
-		gen = current.sstG
+
+	//var isize int64
+	var data int64
+	//lsmtreeFile.Seek(0, 0)
+	//mybytes := make([]byte, unsafe.Sizeof(isize))
+	for true {
+
+		/*_, err = lsmtreeFile.Read(mybytes)
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			break
+		}*/
+		//buf := bytes.NewBuffer(mybytes)
+		//val, err := binary.ReadVarint(buf)
+
+		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+		if err == io.EOF {
+			break
+		}
+		if err == nil {
+			current.sstG = int(data)
+		}
+
+		//_, err = lsmtreeFile.Read(mybytes)
+		/*if err == io.EOF || err == io.ErrUnexpectedEOF {
+
+			break
+		}*/
+		/*buf = bytes.NewBuffer(mybytes)
+		val, err = binary.ReadVarint(buf)
+		if err == nil {
+			current.lvl = int(val)
+		}*/
+
+		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
+		if err == nil {
+			current.lvl = int(data)
+		}
+		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
 		current = current.next
 	}
-	if gen == -1 {
-		return 0
-	} else {
-		return gen + 1
-	}
+	return err
 }
 
-func (lsmt *LSMTree) DeserializeLSMT() error {
+func (lsmt *LSMTree) DeserializeLSMT1() error {
 	binFile, err := os.Open("LSMTree.bin")
 	if err != nil {
 		return err
@@ -280,8 +320,8 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 				return err
 			}
 		}
-		// fmt.Println(int(temp1))
-		// fmt.Print(int(temp2))
+		//fmt.Println("PRVI: " + string(int(temp1)))
+		//fmt.Print("DRUGI: " + string(int(temp2)))
 		current.sstG = int(temp1)
 		current.lvl = int(temp2)
 		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
@@ -291,124 +331,20 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 	return nil
 }
 
-//func (lsmt *LSMTree) DeserializeLSMT1() error {
-//
-//	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
-//	//lsmt := LSMTree{max: config.LSM_DEPTH, nodes: nil}
-//	if err != nil {
-//		return err
-//	}
-//	defer lsmtreeFile.Close()
-//
-//	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
-//	current := lsmt.nodes
-//
-//	//var isize int64
-//	var data int64
-//	lsmtreeFile.Seek(0, 0)
-//<<<<<<< HEAD
-//
-//	for true {
-//		mybytes := make([]byte, unsafe.Sizeof(isize))
-//		_, err = lsmtreeFile.Read(mybytes)
-//		fmt.Println(mybytes)
-//=======
-//	//mybytes := make([]byte, unsafe.Sizeof(isize))
-//	for true {
-//
-//		/*_, err = lsmtreeFile.Read(mybytes)
-//>>>>>>> 8c787e5f303ef57135790ea7defec99cb1dec409
-//		if err == io.EOF || err == io.ErrUnexpectedEOF {
-//			break
-//		}*/
-//		//buf := bytes.NewBuffer(mybytes)
-//		//val, err := binary.ReadVarint(buf)
-//
-//		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
-//		if err == io.EOF {
-//			break
-//		}
-//<<<<<<< HEAD
-//		buf := bytes.NewBuffer(mybytes)
-//		fmt.Println(buf)
-//		val, err := binary.ReadVarint(buf)
-//=======
-//>>>>>>> 8c787e5f303ef57135790ea7defec99cb1dec409
-//		if err == nil {
-//			current.sstG = int(data)
-//		}
-//<<<<<<< HEAD
-//		mybytes2 := make([]byte, unsafe.Sizeof(isize))
-//		_, err = lsmtreeFile.Read(mybytes2)
-//		if err == io.EOF || err == io.ErrUnexpectedEOF {
-//
-//			break
-//		}
-//		buf = bytes.NewBuffer(mybytes2)
-//=======
-//
-//		//_, err = lsmtreeFile.Read(mybytes)
-//		/*if err == io.EOF || err == io.ErrUnexpectedEOF {
-//
-//			break
-//		}*/
-//		/*buf = bytes.NewBuffer(mybytes)
-//>>>>>>> 8c787e5f303ef57135790ea7defec99cb1dec409
-//		val, err = binary.ReadVarint(buf)
-//		if err == nil {
-//			current.lvl = int(val)
-//		}*/
-//
-//		err = binary.Read(lsmtreeFile, binary.BigEndian, &data)
-//		if err == nil {
-//			current.sstG = int(data)
-//		}
-//		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
-//		current = current.next
-//	}
-//	return err
-//}
-//
-//func (lsmt *LSMTree) DeserializeLSMT() error {
-//	binFile, err := os.Open("LSMTree.bin")
-//	if err != nil {
-//		return err
-//	}
-//	defer binFile.Close()
-//
-//	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
-//	current := lsmt.nodes
-//
-//	var temp1, temp2 int64
-//
-//	for {
-//		err = binary.Read(binFile, binary.BigEndian, &temp1)
-//		if err != nil {
-//			if err == io.EOF {
-//				break
-//			} else {
-//				return err
-//			}
-//		}
-//
-//		err = binary.Read(binFile, binary.BigEndian, &temp2)
-//		if err != nil {
-//			if err == io.EOF {
-//				break
-//			} else {
-//				return err
-//			}
-//		}
-//		// fmt.Println(int(temp1))
-//		// fmt.Print(int(temp2))
-//		current.sstG = int(temp1)
-//		current.lvl = int(temp2)
-//		current.next = &LSMNode{sstG: -1, lvl: current.lvl + 1, next: nil}
-//		current = current.next
-//	}
-//
-//	return nil
-//}
+func (lsmt *LSMTree) GetNextGeneration() int {
+	var gen int = -1
+	current := lsmt.nodes
+	for gen == -1 && current != nil {
+		gen = current.sstG
+		current = current.next
+		fmt.Println(gen)
+	}
+	if gen == -1 {
+		return 0
+	} else {
+		return gen + 1
+	}
+}
 
 //package LSM
 //
