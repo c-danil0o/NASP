@@ -39,6 +39,7 @@ func menu() {
 		fmt.Println("6. Input SSTable tests")
 		fmt.Println("7. Count-Min Sketch")
 		fmt.Println("8. HyperLogLog")
+		fmt.Println("9. Ispis svih WAL segmenata iz")
 		fmt.Println("0. Izlaz")
 		fmt.Print(">> ")
 
@@ -134,6 +135,8 @@ func menu() {
 			cms.Menu()
 		case 8:
 			hll.Menu()
+		case 9:
+			wal.Active.PrintLogs()
 		default:
 			fmt.Println("Neispravan unos. Pokusajte ponovo.")
 		}
@@ -362,5 +365,5 @@ func main() {
 
 	menu()
 
-	//  prolazi dok ne nadjes prvi koji jeste, kad nadjes kreni append, prvi koji nije stani
+	// serialize, deserialize
 }
