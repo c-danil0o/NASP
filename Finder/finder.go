@@ -3,7 +3,6 @@ package Finder
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -21,7 +20,6 @@ func readTOC(filename string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 
@@ -151,13 +149,11 @@ func PrefixScan(key []byte, generation uint32) (bool, []container.DataNode, erro
 		offset := head["index"]
 		dataPositions, err := SSTable.FindIDSegments(key, dataFile, offset, head["summary"])
 		if err != nil {
-			fmt.Println("er1", err.Error())
 			return true, retVal, err
 		}
 		for j := range dataPositions {
 			foundRecord, err = SSTable.ReadData(dataFile, dataPositions[j])
 			if err != nil {
-				fmt.Println("er2", err.Error())
 				return true, retVal, err
 			}
 			retVal = append(retVal, foundRecord)

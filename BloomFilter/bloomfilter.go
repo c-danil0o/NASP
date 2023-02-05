@@ -105,14 +105,3 @@ func Read(file *os.File, offset int64) (*BloomFilter, error) {
 	bf.hashfns = CreateHashFunctionsFromSeeds(bf.k, bf.seeds)
 	return &bf, nil
 }
-
-//func main() {
-//	bloom := NewBloomFilter(10, 0.1)
-//	bloom.add([]byte("danilo"))
-//	bloom.add([]byte("golang"))
-//	bloom.add([]byte("dddd"))
-//
-//	println(bloom.find([]byte("danilo")))
-//	println(bloom.find([]byte("daniloc")))
-//
-//}

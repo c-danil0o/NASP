@@ -265,7 +265,6 @@ func get() (container.DataNode, error) {
 	}
 
 	// If not found in memtable
-
 	found, retVal, err = lsmt.Active.FindKey([]byte(key))
 	if err != nil {
 		fmt.Println(err)
@@ -405,9 +404,6 @@ func main() {
 	wal.Init()
 	mt.Init()
 	lru.Init()
-	// lsmt.NewLSMTree()
 
 	menu()
-
-	// serialize, deserialize
 }

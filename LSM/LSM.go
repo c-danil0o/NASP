@@ -13,7 +13,6 @@ import (
 	container "github.com/c-danil0o/NASP/DataContainer"
 	"github.com/c-danil0o/NASP/Finder"
 
-	//memtable "github.com/c-danil0o/NASP/Memtable"
 	sst "github.com/c-danil0o/NASP/SSTable"
 )
 
@@ -33,8 +32,6 @@ var Active LSMTree
 func Init() {
 	Active = *NewLSMTree()
 	Active.DeserializeLSMT()
-	// fmt.Println(Active.GetNextGeneration())
-	// memtable.Generation = uint32(Active.GetNextGeneration())
 }
 
 // mem memtable.Memtable
@@ -68,8 +65,6 @@ func (lsm *LSMTree) insertInNode(SSTable int, node *LSMNode) error {
 			fmt.Println(novaGen)
 			fmt.Println("======")
 			err, temp := sst.Merge(node.sstG, SSTable, novaGen)
-			//os.removefiles(node.sstg)
-			//os.removefiles(sstable)
 			if err != nil {
 				return err
 			}
@@ -112,7 +107,6 @@ func (lsm *LSMTree) FindKey(key []byte) (bool, container.DataNode, error) {
 
 		current = current.next
 	}
-	//found, retVal, err = Finder.FindKey(key, uint32(current.sstG))
 	return found, retVal, err
 }
 
@@ -209,12 +203,10 @@ func (lsmt *LSMTree) Serialize1() error {
 	defer binFile.Close()
 	current := lsmt.nodes
 	for current != nil {
-		//fmt.Println(current.sstG)
 		err = binary.Write(binFile, binary.BigEndian, int64(current.sstG))
 		if err != nil {
 			return err
 		}
-		//fmt.Println(current.lvl)
 		err = binary.Write(binFile, binary.BigEndian, int64(current.lvl))
 		if err != nil {
 			return err
@@ -228,7 +220,6 @@ func (lsmt *LSMTree) Serialize1() error {
 func (lsmt *LSMTree) DeserializeLSMT() error {
 
 	lsmtreeFile, err := os.OpenFile("LSMTree.bin", os.O_RDONLY, 0600)
-	//lsmt := LSMTree{max: config.LSM_DEPTH, nodes: nil}
 	if err != nil {
 		return err
 	}
@@ -237,10 +228,7 @@ func (lsmt *LSMTree) DeserializeLSMT() error {
 	lsmt.nodes = &LSMNode{sstG: -1, lvl: 0, next: nil}
 	current := lsmt.nodes
 
-	//var isize int64
 	var data int64
-	//lsmtreeFile.Seek(0, 0)
-	//mybytes := make([]byte, unsafe.Sizeof(isize))
 	for true {
 
 		/*_, err = lsmtreeFile.Read(mybytes)
